@@ -1,4 +1,5 @@
-from discord import Intents, MemberCacheFlags
+import discord
+from discord import Intents, MemberCacheFlags, Embed
 from discord.ext.commands import Bot
 import boss
 import re
@@ -7,6 +8,7 @@ import re
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
+    bot.remove_command("help")
     boss_dict = {}
     valid_channels = ['aod', 'tla', 'rvd']
 
@@ -32,9 +34,13 @@ def run_bot():
     @bot.command()
     async def delete_boss(ctx):
         if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
-            await ctx.send(f"Deleting lv.{curr_boss.level} {str(ctx.channel.name).upper()} boss.")
-            del boss_dict[ctx.channel.id]
+            try:
+                curr_boss = boss_dict[ctx.channel.id]
+                await ctx.send(f"Deleting lv.{curr_boss.level} {str(ctx.channel.name).upper()} boss.")
+                del boss_dict[ctx.channel.id]
+            except:
+                await ctx.send(f"Cannot delete a boss that does not exist. Please create a boss before "
+                               f"trying to call `$delete`")
 
     @bot.command()
     async def insert_boss(ctx, level, health):
@@ -71,7 +77,7 @@ def run_bot():
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
             damage = sanitize_int(damage)
-            if damage > curr_boss.level_hp[curr_boss.level] or damage > curr_boss.hp:
+            if damage > curr_boss.level_hp[curr_boss.level] or damage >= curr_boss.hp:
                 await ctx.send("Please double check that you input the correct number for damage. If you killed the boss"
                                " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
                                " neither of these are the case, please contact your staff to get them to reset the boss"
@@ -100,8 +106,20 @@ def run_bot():
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
-            await ctx.send(f"Current HP of lv.{curr_boss.level} {str(ctx.channel.name).upper()}: "
-                           f"{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}")
+            name = curr_boss.name;
+            if name == 'rvd': clr = 0xFF6060
+            elif name == 'aod': clr = 0xB900A2
+            else: clr = 0x58C7CF
+            embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}",
+                                  description=f"**Lv: {curr_boss.level}** | "
+                                  f"**HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}**",
+                                  color=clr)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url)
+            await ctx.send(embed=embed)
+
+    @bot.command()
+    async def help(ctx):
+        x = 10
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
