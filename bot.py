@@ -3,6 +3,7 @@ from discord import Intents, MemberCacheFlags, Embed
 from discord.ext.commands import Bot
 import boss
 import re
+import datetime
 
 
 def run_bot():
@@ -84,7 +85,8 @@ def run_bot():
                                " at it's current level and hp.")
                 return
             curr_boss.take_damage(damage, ctx.message.author.id)
-            name = curr_boss.name;
+            name = curr_boss.name
+            ct = datetime.datetime.utcnow()
             if name == 'rvd': clr = 0xFF6060
             elif name == 'aod': clr = 0xB900A2
             else: clr = 0x58C7CF
@@ -92,8 +94,10 @@ def run_bot():
                                   description=f"**{ctx.author.mention} did {damage:,} damage"
                                               f" to the {str(ctx.channel.name).upper()}**",
                                   color=clr)
-            embed.add_field(name="New Health", value=f"HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}")
+            embed.add_field(name="> __New Health__", value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
+                            inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_footer(text=f"•UTC: {ct}•")
             await ctx.send(embed=embed)
 
     @bot.command()
@@ -117,15 +121,17 @@ def run_bot():
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
-            name = curr_boss.name;
+            name = curr_boss.name
+            ct = datetime.datetime.utcnow()
             if name == 'rvd': clr = 0xFF6060
             elif name == 'aod': clr = 0xB900A2
             else: clr = 0x58C7CF
-            embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}",
-                                  description=f"**Lv: {curr_boss.level}** | "
-                                  f"**HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}**",
-                                  color=clr)
+            embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}", color=clr)
+            embed.add_field(name="> __Health__",
+                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
+                            inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_footer(text=f"•UTC: {ct}•")
             await ctx.send(embed=embed)
 
     @bot.command()
