@@ -77,15 +77,24 @@ def run_bot():
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
             damage = sanitize_int(damage)
-            if damage > curr_boss.level_hp[curr_boss.level] or damage >= curr_boss.hp:
+            if damage > curr_boss.level_hp[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await ctx.send("Please double check that you input the correct number for damage. If you killed the boss"
                                " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
                                " neither of these are the case, please contact your staff to get them to reset the boss"
                                " at it's current level and hp.")
                 return
             curr_boss.take_damage(damage, ctx.message.author.id)
-            await ctx.send(f"{ctx.message.author.mention} did {damage} to the {str(ctx.channel.name).upper()}. "
-                           f"HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}")
+            name = curr_boss.name;
+            if name == 'rvd': clr = 0xFF6060
+            elif name == 'aod': clr = 0xB900A2
+            else: clr = 0x58C7CF
+            embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}",
+                                  description=f"**{ctx.author.mention} did {damage:,} damage"
+                                              f" to the {str(ctx.channel.name).upper()}**",
+                                  color=clr)
+            embed.add_field(name="New Health", value=f"HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}")
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            await ctx.send(embed=embed)
 
     @bot.command()
     async def killed(ctx):
@@ -96,7 +105,9 @@ def run_bot():
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
             curr_boss.killed()
-            await ctx.send(f"New Boss HP: {curr_boss.hp:,}/{curr_boss.hp:,}")
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            await ctx.send(f"@here {str(ctx.channel.name).upper()} has been swept.", allowed_mentions=allowed_mentions)
+            await hp(ctx)
 
     @bot.command()
     async def hp(ctx):
@@ -114,12 +125,17 @@ def run_bot():
                                   description=f"**Lv: {curr_boss.level}** | "
                                   f"**HP: {curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}**",
                                   color=clr)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
             await ctx.send(embed=embed)
 
     @bot.command()
     async def help(ctx):
-        x = 10
+        embed = discord.Embed(title="Documentation",
+                              description="Please click on the link above to view the documentation for all"
+                                          " possible commands.",
+                              url="https://www.onioncult.com/bot-help/",
+                              color=0x6c25be)
+        await ctx.send(embed=embed)
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
