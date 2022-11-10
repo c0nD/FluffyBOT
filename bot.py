@@ -100,6 +100,43 @@ def run_bot():
             embed.set_footer(text=f"•UTC: {ct}•")
             await ctx.send(embed=embed)
 
+    # Hit command for when you don't want it to subtract a ticket
+    @bot.command()
+    async def overkill(ctx, damage):
+        res = bool(boss_dict.get(ctx.channel.id))
+        if not res:
+            await ctx.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(ctx.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[ctx.channel.id]
+            damage = sanitize_int(damage)
+            if damage > curr_boss.level_hp[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
+                await ctx.send(
+                    "Please double check that you input the correct number for damage. If you killed the boss"
+                    " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
+                    " neither of these are the case, please contact your staff to get them to reset the boss"
+                    " at it's current level and hp.")
+                return
+            curr_boss.take_damage(damage, ctx.message.author.id)
+            name = curr_boss.name
+            ct = datetime.datetime.utcnow()
+            if name == 'rvd':
+                clr = 0xFF6060
+            elif name == 'aod':
+                clr = 0xB900A2
+            else:
+                clr = 0x58C7CF
+            embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}",
+                                  description=f"**{ctx.author.mention} did {damage:,} damage"
+                                              f" to the {str(ctx.channel.name).upper()}**",
+                                  color=clr)
+            embed.add_field(name="> __New Health__",
+                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
+                            inline=True)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_footer(text=f"•UTC: {ct}•")
+            await ctx.send(embed=embed)
     @bot.command()
     async def killed(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
@@ -111,6 +148,20 @@ def run_bot():
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             await ctx.send(f"@here {str(ctx.channel.name).upper()} has been swept.", allowed_mentions=allowed_mentions)
+            await hp(ctx)
+
+    # Killed command for when you don't want it to subtract a ticket
+    @bot.command()
+    async def solo(ctx):
+        res = bool(boss_dict.get(ctx.channel.id))
+        if not res:
+            await ctx.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(ctx.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[ctx.channel.id]
+            curr_boss.killed()
+            await ctx.send(f"{str(ctx.channel.name).upper()} has been solo'd by {ctx.message.author.mention}")
             await hp(ctx)
 
     @bot.command()
