@@ -4,6 +4,9 @@ from discord.ext.commands import Bot
 import boss
 import re
 import datetime
+import json
+import attrs
+import cattrs
 
 
 def run_bot():
@@ -12,6 +15,13 @@ def run_bot():
     bot.remove_command("help")
     boss_dict = {}
     valid_channels = ['aod', 'tla', 'rvd']
+    guilds = {"toasted": None,
+              "pearl": None,
+              "burnt": None,
+              "royal": None,
+              "spring": None,
+              "fall": None,
+              "onion": None}
 
     # Async Commands
     @bot.event
@@ -20,9 +30,15 @@ def run_bot():
 
     # STAFF COMMANDS
     @bot.command()
-    async def create_boss(ctx):
+    async def create_boss(ctx, guild):
+        if guild not in guilds:
+            await ctx.send("Invalid guild. Type `$help` for more information.")
+            return
+        elif guilds[guild] is None:
+            guilds[guild] = Guild()
+            ctx.send((guilds[guild]))
         if str(ctx.channel.name).lower() in valid_channels:
-            new_boss = boss.Boss(ctx.channel.name, 1)
+            new_boss = boss.Boss(ctx.channel.name, 1, guild)
             res = bool(boss_dict.get(ctx.channel.id))
             if not res:
                 boss_dict[ctx.channel.id] = new_boss
@@ -73,28 +89,34 @@ def run_bot():
     async def hit(ctx, damage):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
-            await ctx.send("A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await ctx.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
             damage = sanitize_int(damage)
             if damage > curr_boss.level_hp[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await ctx.send("Please double check that you input the correct number for damage. If you killed the boss"
-                               " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
-                               " neither of these are the case, please contact your staff to get them to reset the boss"
-                               " at it's current level and hp.")
+                await ctx.send(
+                    "Please double check that you input the correct number for damage. If you killed the boss"
+                    " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
+                    " neither of these are the case, please contact your staff to get them to reset the boss"
+                    " at it's current level and hp.")
                 return
             curr_boss.take_damage(damage, ctx.message.author.id)
             name = curr_boss.name
             ct = datetime.datetime.utcnow()
-            if name == 'rvd': clr = 0xFF6060
-            elif name == 'aod': clr = 0xB900A2
-            else: clr = 0x58C7CF
+            if name == 'rvd':
+                clr = 0xFF6060
+            elif name == 'aod':
+                clr = 0xB900A2
+            else:
+                clr = 0x58C7CF
             embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}",
                                   description=f"**{ctx.author.mention} did {damage:,} damage"
                                               f" to the {str(ctx.channel.name).upper()}**",
                                   color=clr)
-            embed.add_field(name="> __New Health__", value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
+            embed.add_field(name="> __New Health__",
+                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
                             inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
             embed.set_footer(text=f"•UTC: {ct}•")
@@ -137,11 +159,13 @@ def run_bot():
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
             embed.set_footer(text=f"•UTC: {ct}•")
             await ctx.send(embed=embed)
+
     @bot.command()
     async def killed(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
-            await ctx.send("A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await ctx.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
@@ -168,15 +192,19 @@ def run_bot():
     async def hp(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
-            await ctx.send("A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await ctx.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
             name = curr_boss.name
             ct = datetime.datetime.utcnow()
-            if name == 'rvd': clr = 0xFF6060
-            elif name == 'aod': clr = 0xB900A2
-            else: clr = 0x58C7CF
+            if name == 'rvd':
+                clr = 0xFF6060
+            elif name == 'aod':
+                clr = 0xB900A2
+            else:
+                clr = 0x58C7CF
             embed = discord.Embed(title=f"{str(ctx.channel.name).upper()}", color=clr)
             embed.add_field(name="> __Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.level_hp[curr_boss.level]:,}***",
@@ -197,6 +225,7 @@ def run_bot():
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
     bot.run(tkn)
+
 
 def sanitize_int(num):
     re.sub('\D', '', str(num))

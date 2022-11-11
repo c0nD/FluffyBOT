@@ -1,15 +1,21 @@
-import attr, cattr, json
+# boss.py
+import attr, cattrs, json
 
 
+@attr.define
 class Boss:
-    def __init__(self, name, level):
+    name: str
+    level: int
+    guild: str
+    hp: int = 0
+    hp_list: list = []
+    hits: list = []
+
+    def __attrs_post_init__(self):
         # Boss HP at each level : index = level
-        hp_list = [0, 100, 1000, 10000, 100000, 1000000]
         self.hits = []
-        self.name = name
-        self.level = level
-        self.level_hp = hp_list
-        self.hp = self.level_hp[self.level]
+        self.hp_list = [0, 100, 1000, 10000, 100000, 1000000]
+        self.hp = self.hp_list[self.level]
 
     def set_hp(self, hp):
         self.hp = hp
@@ -20,13 +26,19 @@ class Boss:
 
     def killed(self):
         self.level += 1
-        self.hp = self.level_hp[self.level]
+        self.hp = self.hp_list[self.level]
 
     def overkill_damage(self, damage):
         self.hp -= damage
 
 
+@attr.define
 class Hit:
-    def __init__(self, damage, user):
-        self.damage = damage
-        self.user = user
+    damage: int
+    user_id: int
+
+
+@attr.define
+class Guild:
+    users: dict = {}
+    bosses = list = []
