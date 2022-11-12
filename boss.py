@@ -20,9 +20,9 @@ class Boss:
     def set_hp(self, hp):
         self.hp = hp
 
-    def take_damage(self, damage, user):
+    def take_damage(self, damage, user, used_ticket):
         self.hp -= damage
-        self.hits.append(Hit(damage, user))
+        self.hits.append(Hit(damage, user, used_ticket))
 
     def killed(self):
         self.level += 1
@@ -36,6 +36,7 @@ class Boss:
 class Hit:
     damage: int
     user_id: int
+    ticket_used: bool
 
 
 @attr.define
