@@ -52,6 +52,10 @@ def run_bot():
         if exc_class in exc_table.keys():
             await ctx.send(exc_table[exc_class])
             await help(ctx)
+        else:
+            # All other Errors not returned come here. And we can just print the default TraceBack.
+            print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
     @bot.event
     async def on_ready():
@@ -65,7 +69,11 @@ def run_bot():
         await ctx.send(view=my_view)
         res = await view.wait()
         if not res:
-            await ctx.send("button has been pressed")
+            return
+
+        await ctx.send(my_view)
+
+
 
     # STAFF COMMANDS
     @bot.command()
@@ -142,6 +150,7 @@ def run_bot():
     @bot.command()
     @commands.guild_only()
     async def hit(ctx, damage):
+        await ctx.send(damage)
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
             await ctx.send(
@@ -170,16 +179,16 @@ def run_bot():
                 clr = 0xFF6060
             elif name == 'aod':
                 clr = 0xB900A2
+                await ctx.send("incolor")
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}",
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}",
                                   description=f"**{ctx.author.mention} did {damage:,} damage"
-                                              f" to the {str(ctx.channel.name).upper()}**",
-                                  color=clr)
+                                              f" to the {str(ctx.channel.name).upper()}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
             embed.set_footer(text=f"•CRK TIME: {ct}•")
             await ctx.send(embed=embed)
 
@@ -225,7 +234,7 @@ def run_bot():
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
             embed.set_footer(text=f"•CRK: {ct}•")
             await ctx.send(embed=embed)
 
@@ -290,7 +299,7 @@ def run_bot():
             embed.add_field(name="> __Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
             embed.set_footer(text=f"•CRK: {ct}•")
             await ctx.send(embed=embed)
 

@@ -1,6 +1,8 @@
 import discord
+import bot
 from discord import ui, app_commands
 from discord.ui import Modal, View
+
 
 class MyView(View):
     def __init__(self, ctx):
@@ -41,9 +43,7 @@ class MyView(View):
 
 
 class AttackForum(Modal, title='Attacks powered by c0nD'):
-    name = ui.TextInput(label="test name")
-    answer = ui.TextInput(label='Answer', style=discord.TextStyle.paragraph)
+    dmg = ui.TextInput(label="DAMAGE DONE")
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Thanks for your response, {self.name}!')
-
+        await interaction.response.send_message(f'{self.dmg} damage!')
