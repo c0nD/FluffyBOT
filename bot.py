@@ -1,5 +1,6 @@
 import discord
 from discord import Intents, MemberCacheFlags, Embed
+from discord.ext import commands
 from discord.ext.commands import Bot
 import boss
 import re
@@ -32,13 +33,32 @@ def run_bot():
         "rvd": 1040927439343341620
     }
 
-    # Async Commands
+    guild_id = 1036888929850359840
+
+    @bot.event
+    async def on_command_error(ctx, exception):
+        exc_class = exception.__class__
+        if exc_class in (commands.CommandNotFound, commands.NotOwner):
+            return
+
+        exc_table = {
+            commands.MissingRequiredArgument: f"The required arguments are missing for this command!",
+            commands.NoPrivateMessage: f"This command cannot be used in PM's!",
+            commands.BadArgument: f"A bad argument was passed, please check if your arguments are correct!",
+        }
+
+        if exc_class in exc_table.keys():
+            await ctx.send(exc_table[exc_class])
+            await help(ctx)
+
+
     @bot.event
     async def on_ready():
         print(f'\n\n\t\t\t\t\t\t{bot.user} is now running!')
 
     # STAFF COMMANDS
     @bot.command()
+    @commands.guild_only()
     async def create_boss(ctx, guild):
         guild = guild.lower()
         if guild not in guilds:
@@ -61,6 +81,7 @@ def run_bot():
             await ctx.send("Attempting to create a boss in a channel not designated to create bosses in.")
 
     @bot.command()
+    @commands.guild_only()
     async def delete_boss(ctx):
         if str(ctx.channel.name).lower() in valid_channels:
             try:
@@ -72,6 +93,7 @@ def run_bot():
                                f"trying to call `$delete`")
 
     @bot.command()
+    @commands.guild_only()
     async def insert_boss(ctx, guild, level, health):
         if str(ctx.channel.name).lower() in valid_channels:
             level = sanitize_int(level)
@@ -82,7 +104,7 @@ def run_bot():
                 return
             elif guilds[guild] is None:
                 guilds[guild] = boss.Guild()
-                ctx.send((guilds[guild]))
+                await ctx.send((guilds[guild]))
 
             new_boss = boss.Boss(ctx.channel.name, level, guild)
             # If you accidentally set the hp too high
@@ -106,6 +128,7 @@ def run_bot():
 
     # USER COMMANDS
     @bot.command()
+    @commands.guild_only()
     async def hit(ctx, damage):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
@@ -146,6 +169,7 @@ def run_bot():
 
     # Hit command for when you don't want it to subtract a ticket
     @bot.command()
+    @commands.guild_only()
     async def bonus_hit(ctx, damage):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
@@ -185,6 +209,7 @@ def run_bot():
             await ctx.send(embed=embed)
 
     @bot.command()
+    @commands.guild_only()
     async def killed(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
@@ -202,6 +227,7 @@ def run_bot():
 
     # Killed command for when you don't want it to subtract a ticket
     @bot.command()
+    @commands.guild_only()
     async def bonus_kill(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
@@ -217,6 +243,7 @@ def run_bot():
             await hp(ctx)
 
     @bot.command()
+    @commands.guild_only()
     async def hp(ctx):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
@@ -244,6 +271,7 @@ def run_bot():
             await ctx.send(embed=embed)
 
     @bot.command()
+    @commands.guild_only()
     async def help(ctx):
         embed = discord.Embed(title="Documentation",
                               description="Please click on the link above to view the documentation for all"
@@ -253,24 +281,13 @@ def run_bot():
         await ctx.send(embed=embed)
 
     @bot.command()
+    @commands.guild_only()
     async def print_dict(ctx):
         await ctx.send(boss_dict)
         for key in boss_dict:
             boss_json = cattrs.unstructure(boss_dict[key])
 
             await ctx.send(boss_json)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
