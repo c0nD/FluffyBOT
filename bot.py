@@ -1,14 +1,16 @@
+import attrs
+import boss
+import cattrs
 import discord
+import json
+import pytz
+import re
+import view
+from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed
 from discord.ext import commands
 from discord.ext.commands import Bot
-import boss
-import re
-from datetime import datetime
-import json
-import attrs
-import cattrs
-import pytz
+from discord.ui import Button, View
 
 
 def run_bot():
@@ -51,15 +53,25 @@ def run_bot():
             await ctx.send(exc_table[exc_class])
             await help(ctx)
 
-
     @bot.event
     async def on_ready():
         print(f'\n\n\t\t\t\t\t\t{bot.user} is now running!')
+
+    # COMMAND MENU
+    @bot.command()
+    @commands.guild_only()
+    async def attack(ctx):
+        my_view = view.MyView(ctx)
+        await ctx.send(view=my_view)
+        res = await view.wait()
+        if not res:
+            await ctx.send("button has been pressed")
 
     # STAFF COMMANDS
     @bot.command()
     @commands.guild_only()
     async def create_boss(ctx, guild):
+        await ctx.send(discord.__version__)
         guild = guild.lower()
         if guild not in guilds:
             await ctx.send("Invalid guild. Type `$help` for more information.")
@@ -145,7 +157,11 @@ def run_bot():
                     " neither of these are the case, please contact your staff to get them to reset the boss"
                     " at it's current level and hp.")
                 return
-            curr_boss.take_damage(damage, ctx.message.author.id, True)
+            if ctx.message.author.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(damage, ctx.message.author.id, True, False)
+            else:
+                curr_boss.take_damage(damage, ctx.message.author.id, True, True)
+                curr_boss.current_users_hit.append(ctx.message.author.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
@@ -186,7 +202,12 @@ def run_bot():
                     " neither of these are the case, please contact your staff to get them to reset the boss"
                     " at it's current level and hp.")
                 return
-            curr_boss.take_damage(damage, ctx.message.author.id, False)
+            if ctx.message.author.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(damage, ctx.message.author.id, False, False)
+            else:
+                await ctx.send("before assign")
+                curr_boss.take_damage(damage, ctx.message.author.id, False, True)
+                curr_boss.current_users_hit.append(ctx.message.author.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
@@ -218,8 +239,11 @@ def run_bot():
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
-            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, True)
+            await ctx.send("before")
+            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, True, True)
+            await ctx.send("after")
             curr_boss.killed()
+            await ctx.send("after")
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(ctx.guild.roles, id=ping_roles[ctx.channel.name])
             await ctx.send(f"{ping.mention} has been swept. New Boss:", allowed_mentions=allowed_mentions)
@@ -236,7 +260,7 @@ def run_bot():
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
-            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, False)
+            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, False, True)
             curr_boss.killed()
             ping = discord.utils.get(ctx.guild.roles, id=ping_roles[ctx.channel.name])
             await ctx.send(f"{ping.mention} has been bonus killed by {ctx.message.author.mention}. Next Boss:")
@@ -283,13 +307,9 @@ def run_bot():
     @bot.command()
     @commands.guild_only()
     async def print_dict(ctx):
-        await ctx.send(boss_dict)
         for key in boss_dict:
             boss_json = cattrs.unstructure(boss_dict[key])
-
             await ctx.send(boss_json)
-
-
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'

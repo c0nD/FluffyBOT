@@ -10,6 +10,7 @@ class Boss:
     hp: int = 0
     hp_list: list = []
     hits: list = []
+    current_users_hit = []
 
     def __attrs_post_init__(self):
         # Boss HP at each level : index = level
@@ -27,13 +28,14 @@ class Boss:
     def set_hp(self, hp):
         self.hp = hp
 
-    def take_damage(self, damage, user, used_ticket):
+    def take_damage(self, damage, user, used_ticket, split):
         self.hp -= damage
-        self.hits.append(Hit(damage, user, used_ticket))
+        self.hits.append(Hit(damage, user, used_ticket, split))
 
     def killed(self):
         self.level += 1
         self.hp = self.hp_list[self.level]
+        self.current_users_hit.clear()
 
     def overkill_damage(self, damage):
         self.hp -= damage
@@ -44,6 +46,7 @@ class Hit:
     damage: int
     user_id: int
     ticket_used: bool
+    split: bool
 
 
 @attr.define
