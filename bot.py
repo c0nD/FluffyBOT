@@ -320,6 +320,9 @@ def run_bot():
             boss_json = cattrs.unstructure(boss_dict[key])
             await ctx.send(boss_json)
 
+    json.dump(boss.json)
+
+
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
     bot.run(tkn)
