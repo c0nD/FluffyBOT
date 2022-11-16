@@ -6,19 +6,29 @@ import json
 import pytz
 import re
 import view
+import sys, traceback
+import pymongo
 from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed
 from discord.ext import commands
 from discord.ext.commands import Bot
 from discord.ui import Button, View
 
+print("test")
+
 
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
+
+    @bot.event
+    async def on_ready():
+        print(f'\n\n\t\t\t\t\t\t{bot.user} is now running!')
+
     bot.remove_command("help")
     boss_dict = {}
     valid_channels = ['aod', 'tla', 'rvd']
+    mdb = "mMi35tlQkP5tmGW7"
     guilds = {
         "toasted": None,
         "pearl": None,
@@ -55,25 +65,7 @@ def run_bot():
         else:
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-
-    @bot.event
-    async def on_ready():
-        print(f'\n\n\t\t\t\t\t\t{bot.user} is now running!')
-
-    # COMMAND MENU
-    @bot.command()
-    @commands.guild_only()
-    async def attack(ctx):
-        my_view = view.MyView(ctx)
-        await ctx.send(view=my_view)
-        res = await view.wait()
-        if not res:
-            return
-
-        await ctx.send(my_view)
-
-
+            traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
     # STAFF COMMANDS
     @bot.command()
@@ -150,7 +142,6 @@ def run_bot():
     @bot.command()
     @commands.guild_only()
     async def hit(ctx, damage):
-        await ctx.send(damage)
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
             await ctx.send(
@@ -179,7 +170,6 @@ def run_bot():
                 clr = 0xFF6060
             elif name == 'aod':
                 clr = 0xB900A2
-                await ctx.send("incolor")
             else:
                 clr = 0x58C7CF
             embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}",
@@ -189,11 +179,11 @@ def run_bot():
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-            embed.set_footer(text=f"•CRK TIME: {ct}•")
+            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await ctx.send(embed=embed)
 
     # Hit command for when you don't want it to subtract a ticket
-    @bot.command()
+    @bot.command(aliases=["resume_hit"])
     @commands.guild_only()
     async def bonus_hit(ctx, damage):
         res = bool(boss_dict.get(ctx.channel.id))
@@ -214,7 +204,6 @@ def run_bot():
             if ctx.message.author.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, ctx.message.author.id, False, False)
             else:
-                await ctx.send("before assign")
                 curr_boss.take_damage(damage, ctx.message.author.id, False, True)
                 curr_boss.current_users_hit.append(ctx.message.author.id)
             name = curr_boss.name
@@ -235,7 +224,7 @@ def run_bot():
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-            embed.set_footer(text=f"•CRK: {ct}•")
+            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await ctx.send(embed=embed)
 
     @bot.command()
@@ -248,11 +237,8 @@ def run_bot():
             return
         if str(ctx.channel.name).lower() in valid_channels:
             curr_boss = boss_dict[ctx.channel.id]
-            await ctx.send("before")
             curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, True, True)
-            await ctx.send("after")
             curr_boss.killed()
-            await ctx.send("after")
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(ctx.guild.roles, id=ping_roles[ctx.channel.name])
             await ctx.send(f"{ping.mention} has been swept. New Boss:", allowed_mentions=allowed_mentions)
@@ -300,7 +286,7 @@ def run_bot():
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-            embed.set_footer(text=f"•CRK: {ct}•")
+            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await ctx.send(embed=embed)
 
     @bot.command()
@@ -319,9 +305,6 @@ def run_bot():
         for key in boss_dict:
             boss_json = cattrs.unstructure(boss_dict[key])
             await ctx.send(boss_json)
-
-    json.dump(boss.json)
-
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
