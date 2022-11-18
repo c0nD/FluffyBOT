@@ -7,7 +7,6 @@ import pytz
 import re
 import view
 import sys, traceback
-import pymongo
 from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed
 from discord.ext import commands
@@ -305,6 +304,16 @@ def run_bot():
         for key in boss_dict:
             boss_json = cattrs.unstructure(boss_dict[key])
             await ctx.send(boss_json)
+
+    def __write_json():
+        json_obj = json.dumps(cattrs.unstructure(boss_dict), indent=4);
+        with open("data.json", "w") as outfile:
+            outfile.write(json_obj)
+
+
+    @bot.command()
+    async def write_json(ctx):
+        __write_json()
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
