@@ -46,6 +46,8 @@ def run_bot():
 
     guild_id = 1036888929850359840
 
+    write = False
+
     @bot.event
     async def on_command_error(ctx, exception):
         exc_class = exception.__class__
@@ -305,15 +307,19 @@ def run_bot():
             boss_json = cattrs.unstructure(boss_dict[key])
             await ctx.send(boss_json)
 
+
+    # Reading / Writing to json
     def __write_json():
-        json_obj = json.dumps(cattrs.unstructure(boss_dict), indent=4);
+        json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4);
         with open("data.json", "w") as outfile:
-            outfile.write(json_obj)
+            outfile.write(json_object)
 
+    if write:
+        with open('data.json', 'r') as openfile:
+            json_obj = json.load(openfile)
+        boss_dict = cattrs.structure(json_obj)
+        write = false
 
-    @bot.command()
-    async def write_json(ctx):
-        __write_json()
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
