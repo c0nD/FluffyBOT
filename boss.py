@@ -47,6 +47,7 @@ class Hit:
     user_id: int
     ticket_used: bool
     split: bool
+    username: str = ''
 
 
 @attr.define

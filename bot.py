@@ -6,7 +6,10 @@ import json
 import pytz
 import re
 import view
+import csv
 import sys, traceback
+from apscheduler.schedulers.background import BackgroundScheduler
+from types import SimpleNamespace
 from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed
 from discord.ext import commands
@@ -307,19 +310,36 @@ def run_bot():
             boss_json = cattrs.unstructure(boss_dict[key])
             await ctx.send(boss_json)
 
-
     # Reading / Writing to json
     def __write_json():
-        json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4);
+        print("Execute")
+        json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4)
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
 
-    if write:
-        with open('data.json', 'r') as openfile:
-            json_obj = json.load(openfile)
-        boss_dict = cattrs.structure(json_obj)
-        write = false
+    def __read_json():
+        pass
 
+    @bot.command()
+    @commands.guild_only()
+    async def send_data(ctx):
+        for i in boss_dict:
+            for j in boss_dict[i].hits:
+                if j.user_id != -1:
+                    user = await bot.fetch_user(j.user_id)
+                    j.username = user.name
+
+                    await ctx.send(j)
+
+
+
+
+
+
+    # Setting up scheduler to save data
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(__write_json, 'interval', seconds=600)
+    scheduler.start()
 
     # Run the bot
     tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
