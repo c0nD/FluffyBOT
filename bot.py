@@ -75,7 +75,8 @@ def run_bot():
 
     # STAFF COMMANDS
     @bot.tree.command(name="create_boss")
-    @app_commands.describe(guild="Which guild is the boss being created for?")
+    @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc)")
+    @commands.guild_only()
     async def create_boss(interaction: discord.Interaction, guild: str):
         guild = guild.lower()
         if guild not in guilds:
@@ -88,7 +89,8 @@ def run_bot():
             res = bool(boss_dict.get(interaction.channel_id))
             if not res:
                 boss_dict[interaction.channel_id] = new_boss
-                await interaction.response.send_message(f"Created Boss in {interaction.channel.name}.")
+                await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
+                                                        f"Boss for `{guild.capitalize()}`.**")
             else:
                 await interaction.response.send_message("Cannot create two bosses at once. If you want to reset the boss, please call "
                                "`$delete_boss` first.")
@@ -338,7 +340,7 @@ def run_bot():
     scheduler.start()
 
     # Run the bot
-    tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GMKe3G.UaqGU_yHdCYEhigVY3795Hn34o0KFevUzd6dmc'
+    tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GBXmNr.m2gHuFoBsFFngVnge1k54XInzNZ78T_PuvQBZw'
     bot.run(tkn)
 
 
