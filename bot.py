@@ -106,7 +106,7 @@ def run_bot():
             try:
                 curr_boss = boss_dict[interaction.channel_id]
                 await interaction.response.send_message(f"**Deleting `lv.{curr_boss.level}"
-                                                     f" {str(interaction.channel.name).upper()}` boss.**")
+                                                     f" {str(interaction.channel.name).upper()}`**")
                 del boss_dict[interaction.channel_id]
             except Exception as e:
                 await interaction.response.send_message(f"Cannot delete a boss that does not exist. Please create "
@@ -144,7 +144,7 @@ def run_bot():
             res = bool(boss_dict.get(interaction.channel_id))
             if not res:
                 boss_dict[interaction.channel_id] = new_boss
-                await interaction.response.send_message(f"**Inserted `{interaction.channel.name}` Boss**.")
+                await interaction.response.send_message(f"**Inserted `{interaction.channel.name.upper()}` Boss**.")
             else:
                 await interaction.response.send_message("Cannot create two bosses at once. If you want to reset "
                                                         "the boss, please call `/delete_boss` first.")
@@ -153,29 +153,33 @@ def run_bot():
                                                     " this command again in a valid channel.")
 
     # USER COMMANDS
-    @bot.command()
+    @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
+    @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @commands.guild_only()
-    async def hit(ctx, damage):
-        res = bool(boss_dict.get(ctx.channel.id))
+    async def hit(interaction: discord.Interaction, damage: str):
+        await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        res = bool(boss_dict.get(interaction.channel_id))
         if not res:
-            await ctx.send(
+            await interaction.followup.send(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.delete_original_response()
             return
-        if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await ctx.send(
+                await interaction.followup.send(
                     "Please double check that you input the correct number for damage. If you killed the boss"
                     " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
                     " neither of these are the case, please contact your staff to get them to reset the boss"
                     " at it's current level and hp.")
+                await interaction.delete_original_response()
                 return
-            if ctx.message.author.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, ctx.message.author.id, True, False)
+            if interaction.user.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(damage, interaction.user.id, True, False)
             else:
-                curr_boss.take_damage(damage, ctx.message.author.id, True, True)
-                curr_boss.current_users_hit.append(ctx.message.author.id)
+                curr_boss.take_damage(damage, interaction.user.id, True, True)
+                curr_boss.current_users_hit.append(interaction.user.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
@@ -186,20 +190,23 @@ def run_bot():
                 clr = 0xB900A2
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}",
-                                  description=f"**{ctx.author.mention} did {damage:,} damage"
-                                              f" to the {str(ctx.channel.name).upper()}**")
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                                  description=f"**{interaction.user.mention} did {damage:,} damage"
+                                              f" to the {str(interaction.channel.name).upper()}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+            embed.set_author(name=interaction.user.display_name,
+                             icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await ctx.send(embed=embed)
+            await interaction.followup.send(embed=embed)
+            await interaction.delete_original_response()
 
     # Hit command for when you don't want it to subtract a ticket
-    @bot.command(aliases=["resume_hit"])
+    @bot.tree.command(name="hit", description="Hit the boss **without** using a ticket.")
+    @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @commands.guild_only()
-    async def bonus_hit(ctx, damage):
+    async def bonus_hit(interaction: discord.Interaction, damage: str):
         res = bool(boss_dict.get(ctx.channel.id))
         if not res:
             await ctx.send(
