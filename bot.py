@@ -16,7 +16,24 @@ from discord.ext import commands
 from discord.ext.commands import Bot
 from discord.ui import Button, View
 
+# FINALS
 guild_ids = [1036888929850359840]
+valid_channels = ['aod', 'tla', 'rvd']
+guilds = {
+    "toasted": None,
+    "pearl": None,
+    "burnt": None,
+    "royal": None,
+    "spring": None,
+    "fall": None,
+    "onion": None
+}
+
+ping_roles = {
+    "aod": 1040927294123937852,
+    "tla": 1040927394288115753,
+    "rvd": 1040927439343341620
+}
 
 
 def run_bot():
@@ -34,24 +51,6 @@ def run_bot():
 
     bot.remove_command("help")
     boss_dict = {}
-    valid_channels = ['aod', 'tla', 'rvd']
-    mdb = "mMi35tlQkP5tmGW7"
-    guild_id = 1036888929850359840
-    guilds = {
-        "toasted": None,
-        "pearl": None,
-        "burnt": None,
-        "royal": None,
-        "spring": None,
-        "fall": None,
-        "onion": None
-    }
-
-    ping_roles = {
-        "aod": 1040927294123937852,
-        "tla": 1040927394288115753,
-        "rvd": 1040927439343341620
-    }
 
     @bot.event
     async def on_command_error(ctx, exception):
@@ -74,8 +73,8 @@ def run_bot():
             traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
     # STAFF COMMANDS
-    @bot.tree.command(name="create_boss")
-    @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc)")
+    @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
+    @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
     @commands.guild_only()
     async def create_boss(interaction: discord.Interaction, guild: str):
         guild = guild.lower()
@@ -92,56 +91,66 @@ def run_bot():
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
                                                         f"Boss for `{guild.capitalize()}`.**")
             else:
-                await interaction.response.send_message("Cannot create two bosses at once. If you want to reset the boss, please call "
-                               "`$delete_boss` first.")
+                await interaction.response.send_message(
+                    "Cannot create two bosses at once. If you want to reset the boss, please call "
+                    "`/delete_boss` first.")
         else:
-            await interaction.response.send_message("Attempting to create a boss in a channel not designated to create bosses in.")
+            await interaction.response.send_message(
+                "Attempting to create a boss in a channel not designated to create bosses in.")
 
-    @bot.command()
+    @bot.tree.command(name="delete_boss", description="Delete the boss out of the current channel."
+                                                      " Use carefully.")
     @commands.guild_only()
-    async def delete_boss(ctx):
-        if str(ctx.channel.name).lower() in valid_channels:
+    async def delete_boss(interaction: discord.Interaction):
+        if str(interaction.channel.name).lower() in valid_channels:
             try:
-                curr_boss = boss_dict[ctx.channel.id]
-                await ctx.send(f"Deleting lv.{curr_boss.level} {str(ctx.channel.name).upper()} boss.")
-                del boss_dict[ctx.channel.id]
-            except:
-                await ctx.send(f"Cannot delete a boss that does not exist. Please create a boss before "
-                               f"trying to call `$delete`")
+                curr_boss = boss_dict[interaction.channel_id]
+                await interaction.response.send_message(f"**Deleting `lv.{curr_boss.level}"
+                                                     f" {str(interaction.channel.name).upper()}` boss.**")
+                del boss_dict[interaction.channel_id]
+            except Exception as e:
+                await interaction.response.send_message(f"Cannot delete a boss that does not exist. Please create "
+                                                        f"a boss before trying to call `/delete_boss`.")
 
-    @bot.command()
+    @bot.tree.command(name="insert_boss", description="Insert a boss (stat inclusive) to this channel.")
+    @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).",
+                           level="Enter the level of the boss to be inserted.",
+                           health="Enter the health of the boss to be inserted.")
     @commands.guild_only()
-    async def insert_boss(ctx, guild, level, health):
-        if str(ctx.channel.name).lower() in valid_channels:
+    async def insert_boss(interaction: discord.Interaction, guild: str,
+                          level: str, health: str):
+        if str(interaction.channel.name).lower() in valid_channels:
             level = sanitize_int(level)
             health = sanitize_int(health)
             guild = guild.lower()
             if guild not in guilds:
-                await ctx.send("Invalid guild. Type `$help` for more information.")
+                await interaction.response.send_message("Invalid guild. Type `/boss_help` for more information.")
                 return
             elif guilds[guild] is None:
                 guilds[guild] = boss.Guild()
-                await ctx.send((guilds[guild]))
 
-            new_boss = boss.Boss(ctx.channel.name, level, guild)
+            new_boss = boss.Boss(interaction.channel.name, level, guild)
             # If you accidentally set the hp too high
             if health > new_boss.hp_list[new_boss.level]:
-                res = bool(boss_dict.get(ctx.channel.id))
+                res = bool(boss_dict.get(interaction.channel_id))
                 if res:
-                    del boss_dict[ctx.channel.id]
-                    await ctx.send("HP was set higher than boss level allows for. Please try again with valid HP.")
+                    del boss_dict[interaction.channel_id]
+                    await interaction.response.send_message("HP was set higher than boss level allows for."
+                                                            " Please try again with valid HP.")
                     return
             else:
                 new_boss.set_hp(health)
 
-            res = bool(boss_dict.get(ctx.channel.id))
+            res = bool(boss_dict.get(interaction.channel_id))
             if not res:
-                boss_dict[ctx.channel.id] = new_boss
-                await ctx.send(f"Created Boss in {ctx.channel.name}.")
-                await ctx.send(f"{boss_dict}")
+                boss_dict[interaction.channel_id] = new_boss
+                await interaction.response.send_message(f"**Inserted `{interaction.channel.name}` Boss**.")
             else:
-                await ctx.send("Cannot create two bosses at once. If you want to reset the boss, please call "
-                               "`$delete_boss` first.")
+                await interaction.response.send_message("Cannot create two bosses at once. If you want to reset "
+                                                        "the boss, please call `/delete_boss` first.")
+        else:
+            await interaction.response.send_message("Cannot create boss in this channel. Please try"
+                                                    " this command again in a valid channel.")
 
     # USER COMMANDS
     @bot.command()
@@ -228,7 +237,8 @@ def run_bot():
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url) #interaction.user.display_avatar.url interaction.user.display_name
+            embed.set_author(name=ctx.author.display_name,
+                             icon_url=ctx.author.display_avatar.url)  # interaction.user.display_avatar.url interaction.user.display_name
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await ctx.send(embed=embed)
 
@@ -331,8 +341,6 @@ def run_bot():
                     j.username = user.name
 
                     await ctx.send(j)
-
-
 
     # Setting up scheduler to save data
     scheduler = BackgroundScheduler()
