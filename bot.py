@@ -90,6 +90,8 @@ def run_bot():
                 boss_dict[interaction.channel_id] = new_boss
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
                                                         f"Boss for `{guild.capitalize()}`.**")
+                embed = get_hp_embed(interaction, new_boss)
+                await interaction.followup.send(embed=embed)
             else:
                 await interaction.response.send_message(
                     "Cannot create two bosses at once. If you want to reset the boss, please call "
@@ -144,7 +146,10 @@ def run_bot():
             res = bool(boss_dict.get(interaction.channel_id))
             if not res:
                 boss_dict[interaction.channel_id] = new_boss
-                await interaction.response.send_message(f"**Inserted `{interaction.channel.name.upper()}` Boss**.")
+                await interaction.response.send_message(f"**Inserted `lv.{new_boss.level}"
+                                                        f" {interaction.channel.name.upper()}` Boss**.")
+                embed = get_hp_embed(interaction, new_boss)
+                await interaction.followup.send(embed=embed)
             else:
                 await interaction.response.send_message("Cannot create two bosses at once. If you want to reset "
                                                         "the boss, please call `/delete_boss` first.")
@@ -169,8 +174,9 @@ def run_bot():
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(
-                    "Please double check that you input the correct number for damage. If you killed the boss"
-                    " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
+                    "Please double check that you input the exact, correct number for damage (will not accept comma"
+                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
+                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
                     " neither of these are the case, please contact your staff to get them to reset the boss"
                     " at it's current level and hp.")
                 await interaction.delete_original_response()
@@ -203,30 +209,34 @@ def run_bot():
             await interaction.delete_original_response()
 
     # Hit command for when you don't want it to subtract a ticket
-    @bot.tree.command(name="hit", description="Hit the boss **without** using a ticket.")
+    @bot.tree.command(name="bonus_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @commands.guild_only()
     async def bonus_hit(interaction: discord.Interaction, damage: str):
-        res = bool(boss_dict.get(ctx.channel.id))
+        await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        res = bool(boss_dict.get(interaction.channel_id))
         if not res:
-            await ctx.send(
+            await interaction.followup.send(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.delete_original_response()
             return
-        if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await ctx.send(
-                    "Please double check that you input the correct number for damage. If you killed the boss"
-                    " please use the `$killed` command before calling `$hit` if you just swept this boss. If"
+                await interaction.followup.send(
+                    "Please double check that you input the exact, correct number for damage (will not accept comma"
+                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
+                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
                     " neither of these are the case, please contact your staff to get them to reset the boss"
                     " at it's current level and hp.")
+                await interaction.delete_original_response()
                 return
-            if ctx.message.author.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, ctx.message.author.id, False, False)
+            if interaction.user.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(damage, interaction.user.id, False, False)
             else:
-                curr_boss.take_damage(damage, ctx.message.author.id, False, True)
-                curr_boss.current_users_hit.append(ctx.message.author.id)
+                curr_boss.take_damage(damage, interaction.user.id, False, True)
+                curr_boss.current_users_hit.append(interaction.user.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
@@ -237,96 +247,88 @@ def run_bot():
                 clr = 0xB900A2
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}",
-                                  description=f"**{ctx.author.mention} did {damage:,} damage"
-                                              f" to the {str(ctx.channel.name).upper()}**",
-                                  color=clr)
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                                  description=f"**{interaction.user.mention} did {damage:,} damage"
+                                              f" to the {str(interaction.channel.name).upper()}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            embed.set_author(name=ctx.author.display_name,
-                             icon_url=ctx.author.display_avatar.url)  # interaction.user.display_avatar.url interaction.user.display_name
+            embed.set_author(name=interaction.user.display_name,
+                             icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await ctx.send(embed=embed)
+            await interaction.followup.send(embed=embed)
+            await interaction.delete_original_response()
 
-    @bot.command()
+    @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
     @commands.guild_only()
-    async def killed(ctx):
-        res = bool(boss_dict.get(ctx.channel.id))
+    async def killed(interaction: discord.Interaction):
+        res = bool(boss_dict.get(interaction.channel_id))
         if not res:
-            await ctx.send(
+            await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
-        if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
-            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, True, True)
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
-            ping = discord.utils.get(ctx.guild.roles, id=ping_roles[ctx.channel.name])
-            await ctx.send(f"{ping.mention} has been swept. New Boss:", allowed_mentions=allowed_mentions)
-            await hp(ctx)
+            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+            await interaction.response.send_message(f"**{ping.mention} has been swept. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
 
     # Killed command for when you don't want it to subtract a ticket
-    @bot.command()
+    @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
     @commands.guild_only()
-    async def bonus_kill(ctx):
-        res = bool(boss_dict.get(ctx.channel.id))
+    async def bonus_kill(interaction: discord.Interaction):
+        res = bool(boss_dict.get(interaction.channel_id))
         if not res:
-            await ctx.send(
+            await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
-        if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
-            curr_boss.take_damage(curr_boss.hp, ctx.message.author.id, False, True)
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True)
             curr_boss.killed()
-            ping = discord.utils.get(ctx.guild.roles, id=ping_roles[ctx.channel.name])
-            await ctx.send(f"{ping.mention} has been bonus killed by {ctx.message.author.mention}. Next Boss:")
-            await hp(ctx)
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+            await interaction.response.send_message(f"**{ping.mention} has been swept. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
 
-    @bot.command()
+    @bot.tree.command(name="hp", description="Check the HP of the boss.")
     @commands.guild_only()
-    async def hp(ctx):
-        res = bool(boss_dict.get(ctx.channel.id))
+    async def hp(interaction: discord.Interaction):
+        res = bool(boss_dict.get(interaction.channel_id))
         if not res:
-            await ctx.send(
+            await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
-        if str(ctx.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[ctx.channel.id]
-            name = curr_boss.name
-            tz = pytz.timezone("Asia/Seoul")
-            unformatted_time = datetime.now(tz)
-            ct = unformatted_time.strftime("%H:%M:%S")
-            if name == 'rvd':
-                clr = 0xFF6060
-            elif name == 'aod':
-                clr = 0xB900A2
-            else:
-                clr = 0x58C7CF
-            embed = discord.Embed(title=f"lv.{curr_boss.level} {str(ctx.channel.name).upper()}", color=clr)
-            embed.add_field(name="> __Health__",
-                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
-                            inline=True)
-            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await ctx.send(embed=embed)
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.response.send_message(embed=embed)
 
-    @bot.command()
+    @bot.tree.command(name="boss_help", description="Help understand how to use Fluffy!")
     @commands.guild_only()
-    async def help(ctx):
+    async def boss_help(interaction: discord.Interaction):
         embed = discord.Embed(title="Documentation",
                               description="Please click on the link above to view the documentation for all"
                                           " possible commands.",
                               url="https://www.onioncult.com/bot-help/",
                               color=0x6c25be)
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
-    @bot.command()
+    @bot.tree.command(name="print_dict", description="Print dictionary of boss data.")
     @commands.guild_only()
-    async def print_dict(ctx):
+    async def print_dict(interaction: discord.Interaction):
+        my_str = ""
         for key in boss_dict:
             boss_json = cattrs.unstructure(boss_dict[key])
-            await ctx.send(boss_json)
+            my_str += str(boss_json)
+        await interaction.response.send_message(my_str)
 
     # Reading / Writing to json
     def __write_json():
@@ -360,6 +362,32 @@ def run_bot():
 
 
 def sanitize_int(num):
-    re.sub('\D', '', str(num))
-    num = int(num)
-    return num
+    try:
+        if num[-1].lower() == 'm':
+            return -1
+        re.sub('\D', '', str(num))
+        num = int(num)
+        return num
+    except Exception as e:
+        return -1
+
+
+def get_hp_embed(interaction: discord.Interaction, curr_boss):
+    name = curr_boss.name
+    tz = pytz.timezone("Asia/Seoul")
+    unformatted_time = datetime.now(tz)
+    ct = unformatted_time.strftime("%H:%M:%S")
+    if name == 'rvd':
+        clr = 0xFF6060
+    elif name == 'aod':
+        clr = 0xB900A2
+    else:
+        clr = 0x58C7CF
+    embed = discord.Embed(title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}", color=clr)
+    embed.add_field(name="> __Health__",
+                    value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
+                    inline=True)
+    embed.set_author(name=interaction.user.display_name,
+                     icon_url=interaction.user.display_avatar.url)
+    embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
+    return embed
