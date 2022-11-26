@@ -6,8 +6,9 @@ import json
 import pytz
 import re
 import view
-import csv
+import csv, io
 import sys, traceback
+import pandas as pd
 from apscheduler.schedulers.background import BackgroundScheduler
 from types import SimpleNamespace
 from datetime import datetime
@@ -405,35 +406,30 @@ def run_bot():
                               color=0x6c25be)
         await interaction.response.send_message(embed=embed)
 
-    @bot.tree.command(name="print_dict", description="Print dictionary of boss data.")
-    @commands.guild_only()
-    async def print_dict(interaction: discord.Interaction):
-        my_str = ""
-        for key in boss_dict:
-            boss_json = cattrs.unstructure(boss_dict[key])
-            my_str += str(boss_json)
-        await interaction.response.send_message(my_str)
-
     # Reading / Writing to json
     def __write_json():
-        print("Execute")
         json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4)
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
+        print("Saved to json file.")
 
-    def __read_json():
-        pass
+    async def __convert_csv():
+        for key in boss_dict:
+            for i in boss_dict[key].hits:
+                user = await bot.get_user(i.user_id)
+                i.username = user.name
 
-    @bot.command()
+        __write_json()
+
+        df = pd.read_json(r'data.json')
+        df.to_csv(r'data.csv', index=None)
+
+    @bot.tree.command(name="send_csv", description="Loads the current data.json into the boss_dictionary")
     @commands.guild_only()
-    async def send_data(ctx):
-        for i in boss_dict:
-            for j in boss_dict[i].hits:
-                if j.user_id != -1:
-                    user = await bot.fetch_user(j.user_id)
-                    j.username = user.name
-
-                    await ctx.send(j)
+    async def send_csv(interaction: discord.Interaction):
+        await interaction.response.send_message("Converting data to csv file...")
+        await __convert_csv()
+        await interaction.followup.send(file=discord.File('data.csv'))
 
     # Setting up scheduler to save data
     scheduler = BackgroundScheduler()
