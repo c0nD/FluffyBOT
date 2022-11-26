@@ -18,6 +18,7 @@ from discord.ui import Button, View
 
 # FINALS
 guild_ids = [1036888929850359840]
+admin_roles = []
 valid_channels = ['aod', 'tla', 'rvd']
 guilds = {
     "toasted": None,
@@ -73,6 +74,89 @@ def run_bot():
             traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
     # STAFF COMMANDS
+    @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
+    @app_commands.describe(damage="Enter the exact amount to deal to the boss.")
+    @commands.guild_only()
+    async def admin_hit(interaction: discord.Interaction, damage: str):
+        await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        res = bool(boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. If this is a mistake: please contact c0nD.")
+            await interaction.delete_original_response()
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            damage = sanitize_int(damage)
+            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
+                await interaction.followup.send(
+                    "Please double check that you input the exact, correct number for damage (will not accept comma"
+                    " separated numbers or numbers ending with 'm' (123.4m). If you want to kill the boss, please"
+                    " use `/admin_kill` instead. If there is some other error: please contact c0nD.")
+                await interaction.delete_original_response()
+                return
+            curr_boss.admin_hit(damage)
+
+            # Embed
+            name = curr_boss.name
+            tz = pytz.timezone("Asia/Seoul")
+            unformatted_time = datetime.now(tz)
+            ct = unformatted_time.strftime("%H:%M:%S")
+            if name == 'rvd':
+                clr = 0xFF6060
+            elif name == 'aod':
+                clr = 0xB900A2
+            else:
+                clr = 0x58C7CF
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                                  description=f"**_ADMIN_ did {damage:,} damage"
+                                              f" to the {str(interaction.channel.name).upper()}**")
+            embed.add_field(name="> __New Health__",
+                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
+                            inline=True)
+            embed.set_author(name=interaction.user.display_name,
+                             icon_url=interaction.user.display_avatar.url)
+            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
+            await interaction.followup.send(embed=embed)
+            await interaction.delete_original_response()
+
+    @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
+    @commands.guild_only()
+    async def admin_kill(interaction: discord.Interaction):
+        res = bool(boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.response.send_message(
+                "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss.admin_kill()
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            await interaction.response.send_message(f"**_ADMIN_ has killed the boss. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
+
+    @bot.tree.command(name="admin_revive", description="REVIVE THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT")
+    @commands.guild_only()
+    async def admin_revive(interaction: discord.Interaction):
+        res = bool(boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.response.send_message(
+                "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = boss_dict[interaction.channel_id]
+            if curr_boss.level == 1:
+                await interaction.response.send_message("**Cannot revive boss. No levels to be revived to.**")
+                return
+            curr_boss.admin_revive()
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            await interaction.response.send_message(f"**_ADMIN_ has revived the boss. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
+
     @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
     @commands.guild_only()
@@ -114,7 +198,7 @@ def run_bot():
                 await interaction.response.send_message(f"Cannot delete a boss that does not exist. Please create "
                                                         f"a boss before trying to call `/delete_boss`.")
 
-    @bot.tree.command(name="insert_boss", description="Insert a boss (stat inclusive) to this channel.")
+    @bot.tree.command(name="insert_boss", description="Insert a boss with stats. (PLEASE USE IN LAST CASE SCENARIO)")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).",
                            level="Enter the level of the boss to be inserted.",
                            health="Enter the health of the boss to be inserted.")

@@ -15,7 +15,7 @@ class Boss:
     def __attrs_post_init__(self):
         # Boss HP at each level : index = level
         self.hits = []
-        self.hp_list = [8400000, 13692000, 21246400, 31393600, 44172800, 59192000, 75549600, 91834400,
+        self.hp_list = [0, 8400000, 13692000, 21246400, 31393600, 44172800, 59192000, 75549600, 91834400,
                         102300800, 108528000, 111781600, 115136000, 118591200, 122147200, 125809600,
                         129584000, 132176800, 134820000, 137519200, 140268800, 143074400, 145936000,
                         148853600, 151832800, 154868000, 157964800, 160333600, 162736000, 165177600,
@@ -44,6 +44,19 @@ class Boss:
     def overkill_damage(self, damage):
         self.hp -= damage
 
+    # For fixing hps
+    def admin_hit(self, damage):
+        self.hp -= damage
+
+    def admin_kill(self):
+        self.level += 1
+        self.hp = self.hp_list[self.level]
+        self.current_users_hit.clear()
+
+    def admin_revive(self):
+        self.level -= 1
+        self.hp = self.hp_list[self.level]
+        self.current_users_hit.clear()
 
 @attr.define
 class Hit:
