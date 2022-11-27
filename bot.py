@@ -9,6 +9,7 @@ import view
 import csv, io
 import sys, traceback
 import pandas as pd
+from ast import literal_eval
 from apscheduler.schedulers.background import BackgroundScheduler
 from types import SimpleNamespace
 from datetime import datetime
@@ -411,17 +412,48 @@ def run_bot():
         json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4)
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
+        with open("data.txt", "w") as outfile:
+            outfile.write(json_object)
         print("Saved to json file.")
 
     def __convert_csv():
         __write_json()
+        # From @jason-baker on StackOverflow
+        fin = open("data.txt", "rt")
+        data = fin.read()
+        data = data.replace('true', 'True')
+        data = data.replace('false', 'False')
+        fin.close()
+        fin = open("data.txt", "wt")
+        fin.write(data)
+        fin.close()
 
-        df = pd.read_json(r'data.json')
-        df.to_csv(r'data.csv', index=None)
+        data = literal_eval(open("data.txt").read())
+        df_main = (
+            pd
+                .concat([pd.json_normalize(data=data[x]) for x in data], keys=data.keys())
+                .droplevel(level=1)
+                .reset_index(names="id")
+        )
+        df_main.columns = df_main.columns.str.split(".").str[-1]
+
+        df_hits = (
+            pd
+                .concat([pd.json_normalize(data=data[x], record_path=["hits"]) for x in data], keys=data.keys())
+                .droplevel(level=1)
+                .reset_index(names="id")
+        )
+        df_hits.columns = df_hits.columns.str.split(".").str[-1]
+
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list"])
+        #df_final = df_final.explode("hp_list").reset_index(drop=True)
+
+        df_final.to_csv(r'data.csv', index=None)
 
     @bot.tree.command(name="send_csv", description="Loads the current data.json into the boss_dictionary")
     @commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
+        print("test")
         await interaction.response.send_message("Converting data to csv file...")
 
         for key in boss_dict:
@@ -429,7 +461,6 @@ def run_bot():
                 user = bot.get_user(i.user_id)
                 i.username = user.name
         __convert_csv()
-
         await interaction.followup.send(file=discord.File('data.csv'))
 
     # Setting up scheduler to save data
