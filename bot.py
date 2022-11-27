@@ -413,12 +413,7 @@ def run_bot():
             outfile.write(json_object)
         print("Saved to json file.")
 
-    async def __convert_csv():
-        for key in boss_dict:
-            for i in boss_dict[key].hits:
-                user = await bot.get_user(i.user_id)
-                i.username = user.name
-
+    def __convert_csv():
         __write_json()
 
         df = pd.read_json(r'data.json')
@@ -428,7 +423,13 @@ def run_bot():
     @commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
-        await __convert_csv()
+
+        for key in boss_dict:
+            for i in boss_dict[key].hits:
+                user = bot.get_user(i.user_id)
+                i.username = user.name
+        __convert_csv()
+
         await interaction.followup.send(file=discord.File('data.csv'))
 
     # Setting up scheduler to save data
