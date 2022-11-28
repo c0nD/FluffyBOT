@@ -38,10 +38,10 @@ ping_roles = {
     "rvd": 1040927439343341620
 }
 
-
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
+    boss_dict = {}
 
     @bot.event
     async def on_ready():
@@ -53,7 +53,7 @@ def run_bot():
             print(e)
 
     bot.remove_command("help")
-    boss_dict = {}
+
 
     @bot.event
     async def on_command_error(ctx, exception):
@@ -453,7 +453,6 @@ def run_bot():
     @bot.tree.command(name="send_csv", description="Loads the current data.json into the boss_dictionary")
     @commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
-        print("test")
         await interaction.response.send_message("Converting data to csv file...")
 
         for key in boss_dict:
@@ -503,3 +502,4 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
                      icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
     return embed
+
