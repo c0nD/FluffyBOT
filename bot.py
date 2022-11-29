@@ -41,7 +41,7 @@ ping_roles = {
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
-    boss_dict = {}
+    bot.boss_dict = {}
 
     @bot.event
     async def on_ready():
@@ -81,14 +81,14 @@ def run_bot():
     @commands.guild_only()
     async def admin_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
                 "A boss has not been set up in this channel. If this is a mistake: please contact c0nD.")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(
@@ -125,13 +125,13 @@ def run_bot():
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
     @commands.guild_only()
     async def admin_kill(interaction: discord.Interaction):
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.response.send_message(
                 "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             curr_boss.admin_kill()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             await interaction.response.send_message(f"**_ADMIN_ has killed the boss. New Boss:**",
@@ -142,13 +142,13 @@ def run_bot():
     @bot.tree.command(name="admin_revive", description="REVIVE THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT")
     @commands.guild_only()
     async def admin_revive(interaction: discord.Interaction):
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.response.send_message(
                 "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             if curr_boss.level == 1:
                 await interaction.response.send_message("**Cannot revive boss. No levels to be revived to.**")
                 return
@@ -171,9 +171,9 @@ def run_bot():
             guilds[guild] = boss.Guild()
         if str(interaction.channel.name).lower() in valid_channels:
             new_boss = boss.Boss(interaction.channel.name, 1, guild)
-            res = bool(boss_dict.get(interaction.channel_id))
+            res = bool(bot.boss_dict.get(interaction.channel_id))
             if not res:
-                boss_dict[interaction.channel_id] = new_boss
+                bot.boss_dict[interaction.channel_id] = new_boss
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
                                                         f"Boss for `{guild.capitalize()}`.**")
                 embed = get_hp_embed(interaction, new_boss)
@@ -192,10 +192,10 @@ def run_bot():
     async def delete_boss(interaction: discord.Interaction):
         if str(interaction.channel.name).lower() in valid_channels:
             try:
-                curr_boss = boss_dict[interaction.channel_id]
+                curr_boss = bot.boss_dict[interaction.channel_id]
                 await interaction.response.send_message(f"**Deleting `lv.{curr_boss.level}"
                                                      f" {str(interaction.channel.name).upper()}`**")
-                del boss_dict[interaction.channel_id]
+                del bot.boss_dict[interaction.channel_id]
             except Exception as e:
                 await interaction.response.send_message(f"Cannot delete a boss that does not exist. Please create "
                                                         f"a boss before trying to call `/delete_boss`.")
@@ -220,18 +220,18 @@ def run_bot():
             new_boss = boss.Boss(interaction.channel.name, level, guild)
             # If you accidentally set the hp too high
             if health > new_boss.hp_list[new_boss.level]:
-                res = bool(boss_dict.get(interaction.channel_id))
+                res = bool(bot.boss_dict.get(interaction.channel_id))
                 if res:
-                    del boss_dict[interaction.channel_id]
+                    del bot.boss_dict[interaction.channel_id]
                     await interaction.response.send_message("HP was set higher than boss level allows for."
                                                             " Please try again with valid HP.")
                     return
             else:
                 new_boss.set_hp(health)
 
-            res = bool(boss_dict.get(interaction.channel_id))
+            res = bool(bot.boss_dict.get(interaction.channel_id))
             if not res:
-                boss_dict[interaction.channel_id] = new_boss
+                bot.boss_dict[interaction.channel_id] = new_boss
                 await interaction.response.send_message(f"**Inserted `lv.{new_boss.level}"
                                                         f" {interaction.channel.name.upper()}` Boss**.")
                 embed = get_hp_embed(interaction, new_boss)
@@ -249,14 +249,14 @@ def run_bot():
     @commands.guild_only()
     async def hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(
@@ -300,14 +300,14 @@ def run_bot():
     @commands.guild_only()
     async def bonus_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(
@@ -348,13 +348,13 @@ def run_bot():
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
     @commands.guild_only()
     async def killed(interaction: discord.Interaction):
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -368,13 +368,13 @@ def run_bot():
     @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
     @commands.guild_only()
     async def bonus_kill(interaction: discord.Interaction):
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -387,13 +387,13 @@ def run_bot():
     @bot.tree.command(name="hp", description="Check the HP of the boss.")
     @commands.guild_only()
     async def hp(interaction: discord.Interaction):
-        res = bool(boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.response.send_message(
                 "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = boss_dict[interaction.channel_id]
+            curr_boss = bot.boss_dict[interaction.channel_id]
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.response.send_message(embed=embed)
 
@@ -409,7 +409,7 @@ def run_bot():
 
     # Reading / Writing to json
     def __write_json():
-        json_object = json.dumps(cattrs.unstructure(boss_dict), indent=4)
+        json_object = json.dumps(cattrs.unstructure(bot.boss_dict), indent=4)
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
         with open("data.txt", "w") as outfile:
@@ -455,8 +455,8 @@ def run_bot():
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
-        for key in boss_dict:
-            for i in boss_dict[key].hits:
+        for key in bot.boss_dict:
+            for i in bot.boss_dict[key].hits:
                 user = bot.get_user(i.user_id)
                 i.username = user.name
         __convert_csv()
