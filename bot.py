@@ -463,7 +463,7 @@ def run_bot():
         await interaction.followup.send(file=discord.File('data.csv'))
 
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
-                                                    " FROM A BACKUP")
+                                                    " FROM A BACKUP)")
     @commands.guild_only()
     async def load_json(interaction: discord.Interaction):
         await interaction.response.send_message("Sending json file to dictionary...")
