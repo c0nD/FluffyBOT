@@ -450,17 +450,28 @@ def run_bot():
 
         df_final.to_csv(r'data.csv', index=None)
 
-    @bot.tree.command(name="send_csv", description="Loads the current data.json into the boss_dictionary")
+    @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
     @commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
         for key in bot.boss_dict:
-            for i in bot.boss_dict[key].hits:
-                user = bot.get_user(i.user_id)
-                i.username = user.name
+            for i in bot.boss_dict[key]["hits"]:
+                user = bot.get_user(i["user_id"])
+                i["username"] = user.name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
+
+    @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
+                                                    " FROM A BACKUP")
+    @commands.guild_only()
+    async def load_json(interaction: discord.Interaction):
+        await interaction.response.send_message("Sending json file to dictionary...")
+        with open("data.json") as outfile:
+            bot.boss_dict = json.load(outfile)
+        await interaction.followup.send("Data loaded successfully.")
+        print(bot.boss_dict)
+
 
     # Setting up scheduler to save data
     scheduler = BackgroundScheduler()
