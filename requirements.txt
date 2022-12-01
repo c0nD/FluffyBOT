@@ -1,0 +1,8 @@
+attrs
+cattrs
+discord
+pytz
+pandas
+ast
+apscheduler
+datetime
