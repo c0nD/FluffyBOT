@@ -66,14 +66,18 @@ Switching from using normal commands to app commands (slash commands) has been e
 useful with regards to learning how a lot of Discord functions work internally.
 
 Additionally, I've learned a lot about different packages that Python has to offer.
-For example, serialize and deserializing data to json via the attrs/cattrs packages has been an
+For example, serializing and deserializing data to json via the attrs/cattrs packages has been an
 invaluable experience! I have almost 10 dependencies in this project, so learning about
 different ways to accomplish my goals through these packages has been a great experience.
 
-Finally, I feel like this project has been a great project to refine my Python skills! I've 
-made some projects in Python before, but this one was on a whole new level.
+Finally, I feel like this project has been a great project to refine my Python and overall programming
+skills! I've made some projects in Python before, but this one was on a whole new level. In general,
+I've had to branch out and learn multiple new programming concepts on my own through this
+project. From data serialization, to asynchronous functions, to some DSA, to blocking code:
+this project tested me in every way.
 
 ## Acknowledgements ♥
 
  - [discord.py Discord Server (especially all of the Mayas and helpers)](discord.gg/dpy)
  - [Alex Zades -- helped with cattrs](https://github.com/AlexZades)
+ - [OnionCult Discord! -- there wouldn't be a bot without them to use it!](https://discord.com/invite/onioncult)
