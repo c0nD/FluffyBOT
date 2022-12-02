@@ -9,6 +9,7 @@ import view
 import csv, io
 import sys, traceback
 import pandas as pd
+import linecache
 from ast import literal_eval
 from apscheduler.schedulers.background import BackgroundScheduler
 from types import SimpleNamespace
@@ -32,11 +33,21 @@ guilds = {
     "onion": None
 }
 
-ping_roles = {
-    "aod": 1040927294123937852,
-    "tla": 1040927394288115753,
-    "rvd": 1040927439343341620
-}
+# Setting up to move back and forth between test / main server
+is_test_server = True
+
+if is_test_server:
+    ping_roles = {
+        "aod": 1040927294123937852,
+        "tla": 1040927394288115753,
+        "rvd": 1040927439343341620
+    }
+else:
+    ping_roles = {
+        "aod": 1040927294123937852,
+        "tla": 1040927394288115753,
+        "rvd": 1040927439343341620
+    }
 
 def run_bot():
     # Boring setup
@@ -450,15 +461,27 @@ def run_bot():
 
         df_final.to_csv(r'data.csv', index=None)
 
-    @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
+    @bot.tree.command(name="send_backup_csv", description="Loads the current data.json into a csv to be exported")
     @commands.guild_only()
-    async def send_csv(interaction: discord.Interaction):
+    async def backup_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = bot.get_user(i["user_id"])
                 i["username"] = user.name
+        __convert_csv()
+        await interaction.followup.send(file=discord.File('data.csv'))
+
+    @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
+    @commands.guild_only()
+    async def send_csv(interaction: discord.Interaction):
+        await interaction.response.send_message("Converting data to csv file...")
+
+        for key in bot.boss_dict:
+            for i in bot.boss_dict[key].hits:
+                user = bot.get_user(i.user_id)
+                i.username = user.name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -472,14 +495,13 @@ def run_bot():
         await interaction.followup.send("Data loaded successfully.")
         print(bot.boss_dict)
 
-
     # Setting up scheduler to save data
     scheduler = BackgroundScheduler()
     scheduler.add_job(__write_json, 'interval', seconds=600)
     scheduler.start()
 
     # Run the bot
-    tkn = 'MTAzOTY3MDY3NzE4NTIzNzAzNA.GBXmNr.m2gHuFoBsFFngVnge1k54XInzNZ78T_PuvQBZw'
+    tkn = linecache.getline(r"tkn.txt", 1)
     bot.run(tkn)
 
 
