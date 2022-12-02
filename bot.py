@@ -455,15 +455,27 @@ def run_bot():
 
         df_final.to_csv(r'data.csv', index=None)
 
-    @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
+    @bot.tree.command(name="send_backup_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
-    async def send_csv(interaction: discord.Interaction):
+    async def send_backup_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = bot.get_user(i["user_id"])
                 i["username"] = user.name
+        __convert_csv()
+        await interaction.followup.send(file=discord.File('data.csv'))
+
+    @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
+    @app_commands.guild_only()
+    async def send_csv(interaction: discord.Interaction):
+        await interaction.response.send_message("Converting data to csv file...")
+
+        for key in bot.boss_dict:
+            for i in bot.boss_dict[key].hits:
+                user = bot.get_user(i.user_id)
+                i.username = user.name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
