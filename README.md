@@ -5,7 +5,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 ## Installation
 
-Install Dependencies through `pip`
+Install Dependencies through `pip` via command line
 
 ```bash
   pip install -r requirements.txt
@@ -34,6 +34,7 @@ Click here to read the
   delete_boss
   insert_boss
   load_json
+  send_backup_csv
   send_csv
 ```
 
