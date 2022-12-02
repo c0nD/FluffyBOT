@@ -56,7 +56,7 @@ In `bot.py` you will need to change:
 
 ## Lessons Learned 👨‍🏫
 
-This project has taught me a LOT. Anything form how the Discord API works, managing every
+This project has taught me a LOT. From how the Discord API works, managing every
 single edge case I could think of: I see this as the most valuable project I've taken on.
 
 I feel much more confident when reading documentation and formulating ways to ask the right
