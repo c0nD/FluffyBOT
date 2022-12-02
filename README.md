@@ -19,7 +19,7 @@ Install Dependencies through `pip`
 - Integrated with descriptive slash commands
 ## Documentation 📄
 Click here to read the 
-[Documentation](https://onioncult.com/standalone.html) on how to use the bot commands and read their usages.
+[Documentation](https://onioncult.com/documentation/standalone.html) on how to use the bot commands and read their usages.
 
 
 ## Deployment 🚀
