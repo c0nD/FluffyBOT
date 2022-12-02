@@ -408,7 +408,7 @@ def run_bot():
         embed = discord.Embed(title="Documentation",
                               description="Please click on the link above to view the documentation for all"
                                           " possible commands.",
-                              url="https://www.onioncult.com/bot-help/",
+                              url="https://onioncult.com/standalone.html",
                               color=0x6c25be)
         await interaction.response.send_message(embed=embed)
 
