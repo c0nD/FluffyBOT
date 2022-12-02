@@ -11,18 +11,18 @@ Install Dependencies through `pip`
   pip install -r requirements.txt
 ```
     
-## Features
+## Features 📙
 
 - Allows users to attack bosses 'stored' in Discord channels
 - Serializes all data to `json` and can export all data in sorted `csv` file
 - Admins can fix different user errors with `admin` commands
 - Integrated with descriptive slash commands
-## Documentation
+## Documentation 📄
 Click here to read the 
-[Documentation](https://www.onioncult.com) on how to use the bot commands and read their usages.
+[Documentation](https://onioncult.com/standalone.html) on how to use the bot commands and read their usages.
 
 
-## Deployment
+## Deployment 🚀
 
 ### Commands you need to change to an 'admin' role in App Integration settings:
 
@@ -53,7 +53,7 @@ In `bot.py` you will need to change:
 - `guilds` -> Change to any sister guilds (not servers) that can use the bot
 - `ping_roles` -> IDs of roles to be pinged when bosses are killed
 
-## Lessons Learned
+## Lessons Learned 👨‍🏫
 
 This project has taught me a LOT. Anything form how the Discord API works, managing every
 single edge case I could think of: I see this as the most valuable project I've taken on.
