@@ -20,7 +20,7 @@ from discord.ext.commands import Bot
 from discord.ui import Button, View
 
 # FINALS
-guild_ids = [1036888929850359840]
+guild_id = 1036888929850359840
 admin_roles = []
 valid_channels = ['aod', 'tla', 'rvd']
 guilds = {
@@ -37,10 +37,6 @@ ping_roles = {
     "aod": 1040927294123937852,
     "tla": 1040927394288115753,
     "rvd": 1040927439343341620
-
-    #aod 1047789747751374898
-    #rvd 1047789747751374898
-    #tla 1047789747751374898
 }
 
 def run_bot():
@@ -84,6 +80,7 @@ def run_bot():
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
     @app_commands.describe(damage="Enter the exact amount to deal to the boss.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def admin_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
@@ -129,6 +126,7 @@ def run_bot():
 
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def admin_kill(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -146,6 +144,7 @@ def run_bot():
 
     @bot.tree.command(name="admin_revive", description="REVIVE THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def admin_revive(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -167,6 +166,7 @@ def run_bot():
     @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def create_boss(interaction: discord.Interaction, guild: str):
         guild = guild.lower()
         if guild not in guilds:
@@ -194,6 +194,7 @@ def run_bot():
     @bot.tree.command(name="delete_boss", description="Delete the boss out of the current channel."
                                                       " Use carefully.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def delete_boss(interaction: discord.Interaction):
         if str(interaction.channel.name).lower() in valid_channels:
             try:
@@ -210,6 +211,7 @@ def run_bot():
                            level="Enter the level of the boss to be inserted.",
                            health="Enter the health of the boss to be inserted.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def insert_boss(interaction: discord.Interaction, guild: str,
                           level: str, health: str):
         if str(interaction.channel.name).lower() in valid_channels:
@@ -252,6 +254,7 @@ def run_bot():
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
@@ -303,6 +306,7 @@ def run_bot():
     @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def resume_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
@@ -352,6 +356,7 @@ def run_bot():
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def killed(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -372,6 +377,7 @@ def run_bot():
     # Killed command for when you don't want it to subtract a ticket
     @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def bonus_kill(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -391,6 +397,7 @@ def run_bot():
 
     @bot.tree.command(name="hp", description="Check the HP of the boss.")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def hp(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -404,6 +411,7 @@ def run_bot():
 
     @bot.tree.command(name="boss_help", description="Help understand how to use Fluffy!")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def boss_help(interaction: discord.Interaction):
         embed = discord.Embed(title="Documentation",
                               description="Please click on the link above to view the documentation for all"
@@ -457,6 +465,7 @@ def run_bot():
 
     @bot.tree.command(name="send_backup_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def send_backup_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
@@ -469,6 +478,7 @@ def run_bot():
 
     @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
 
@@ -482,6 +492,7 @@ def run_bot():
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
                                                     " FROM A BACKUP)")
     @app_commands.guild_only()
+    @app_commands.guilds(guild_id)
     async def load_json(interaction: discord.Interaction):
         await interaction.response.send_message("Sending json file to dictionary...")
         with open("data.json") as outfile:
