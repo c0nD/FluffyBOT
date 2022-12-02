@@ -300,10 +300,10 @@ def run_bot():
             await interaction.delete_original_response()
 
     # Hit command for when you don't want it to subtract a ticket
-    @bot.tree.command(name="bonus_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
+    @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.guild_only()
-    async def bonus_hit(interaction: discord.Interaction, damage: str):
+    async def resume_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
