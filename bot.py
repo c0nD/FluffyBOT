@@ -10,6 +10,7 @@ import csv, io
 import sys, traceback
 import pandas as pd
 import linecache
+import jsonpickle
 from ast import literal_eval
 from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -35,9 +36,9 @@ guilds = {
 }
 
 ping_roles = {
-    "aod": 1040927294123937852,
-    "tla": 1040927394288115753,
-    "rvd": 1040927439343341620
+    "aod": 1047787785895038986,
+    "tla": 1047787857357590538,
+    "rvd": 1042512104059568138
 }
 
 def run_bot():
@@ -465,7 +466,7 @@ def run_bot():
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = bot.get_user(i["user_id"])
-                i["username"] = user.display_name
+                i["username"] = user.name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -487,10 +488,10 @@ def run_bot():
     async def load_json(interaction: discord.Interaction):
         await interaction.response.send_message("Sending json file to dictionary...")
         with open("data.json") as outfile:
-            bot.boss_dict = json.load(outfile, object_hook=
-            lambda d: namedtuple('X', d.keys())
-            (*d.values()))
+            json_string = outfile.read()
+        bot.boss_dict = jsonpickle.decode(json_string)
         print(bot.boss_dict)
+        await interaction.followup.send("Data loaded successfully.")
 
 
     # Setting up scheduler to save data
