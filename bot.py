@@ -426,35 +426,26 @@ def run_bot():
 
     def __convert_csv():
         __write_json()
-        # From @jason-baker on StackOverflow
-        fin = open("data.txt", "rt")
-        data = fin.read()
-        data = data.replace('true', 'True')
-        data = data.replace('false', 'False')
-        fin.close()
-        fin = open("data.txt", "wt")
-        fin.write(data)
-        fin.close()
-
-        data = literal_eval(open("data.txt").read())
+        with open('data.json') as f:
+            data = json.load(f)
         df_main = (
             pd
-                .concat([pd.json_normalize(data=data[x]) for x in data], keys=data.keys())
-                .droplevel(level=1)
-                .reset_index(names="id")
+            .concat([pd.json_normalize(data=data[x]) for x in data], keys=data.keys())
+            .droplevel(level=1)
+            .reset_index(names="id")
         )
         df_main.columns = df_main.columns.str.split(".").str[-1]
 
         df_hits = (
             pd
-                .concat([pd.json_normalize(data=data[x], record_path=["hits"]) for x in data], keys=data.keys())
-                .droplevel(level=1)
-                .reset_index(names="id")
+            .concat([pd.json_normalize(data=data[x], record_path=["hits"]) for x in data], keys=data.keys())
+            .droplevel(level=1)
+            .reset_index(names="id")
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
         df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list"])
-        #df_final = df_final.explode("hp_list").reset_index(drop=True)
+        # df_final = df_final.explode("hp_list").reset_index(drop=True)
 
         df_final.to_csv(r'data.csv', index=None)
 
@@ -462,11 +453,11 @@ def run_bot():
     @app_commands.guild_only()
     async def send_backup_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
-
+        guild = interaction.guild;
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = bot.get_user(i["user_id"])
-                i["username"] = user.name
+                i["username"] = user.display_name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -474,7 +465,7 @@ def run_bot():
     @app_commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
-        guild = interaction.guild;
+        guild = interaction.guild
         for key in bot.boss_dict:
             for i in bot.boss_dict[key].hits:
                 user = guild.get_member(i.user_id)
