@@ -32,7 +32,6 @@ class Boss:
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999]
 
         self.hp = self.hp_list[self.level]
-
     def set_hp(self, hp):
         self.hp = hp
 

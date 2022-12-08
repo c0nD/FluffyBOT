@@ -11,6 +11,7 @@ import sys, traceback
 import pandas as pd
 import linecache
 from ast import literal_eval
+from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
 from types import SimpleNamespace
 from datetime import datetime
@@ -34,9 +35,9 @@ guilds = {
 }
 
 ping_roles = {
-    "aod": 1047787785895038986,
-    "tla": 1047787857357590538,
-    "rvd": 1042512104059568138
+    "aod": 1040927294123937852,
+    "tla": 1040927394288115753,
+    "rvd": 1040927439343341620
 }
 
 def run_bot():
@@ -84,19 +85,18 @@ def run_bot():
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. If this is a mistake: please contact c0nD.")
+            await interaction.edit_original_response(
+                content="A boss has not been set up in this channel. If this is a mistake: please contact c0nD.")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await interaction.followup.send(
-                    "Please double check that you input the exact, correct number for damage (will not accept comma"
+                await interaction.edit_original_response(
+                    content="Please double check that you input the exact, correct number for damage (will not accept comma"
                     " separated numbers or numbers ending with 'm' (123.4m). If you want to kill the boss, please"
                     " use `/admin_kill` instead. If there is some other error: please contact c0nD.")
-                await interaction.delete_original_response()
                 return
             curr_boss.admin_hit(damage)
 
@@ -120,7 +120,7 @@ def run_bot():
             embed.set_author(name=interaction.user.display_name,
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await interaction.followup.send(embed=embed)
+            await interaction.edit_original_response(embed=embed)
             await interaction.delete_original_response()
 
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
@@ -144,7 +144,6 @@ def run_bot():
 
     @bot.tree.command(name="admin_revive", description="REVIVE THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT")
     @app_commands.guild_only()
-    @app_commands.guilds(guild_id)
     async def admin_revive(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
@@ -466,7 +465,7 @@ def run_bot():
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = bot.get_user(i["user_id"])
-                i["username"] = user.name
+                i["username"] = user.display_name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -474,11 +473,11 @@ def run_bot():
     @app_commands.guild_only()
     async def send_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
-
+        guild = interaction.guild;
         for key in bot.boss_dict:
             for i in bot.boss_dict[key].hits:
-                user = bot.get_user(i.user_id)
-                i.username = user.name
+                user = guild.get_member(i.user_id)
+                i.username = user.display_name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -488,8 +487,9 @@ def run_bot():
     async def load_json(interaction: discord.Interaction):
         await interaction.response.send_message("Sending json file to dictionary...")
         with open("data.json") as outfile:
-            bot.boss_dict = json.load(outfile)
-        await interaction.followup.send("Data loaded successfully.")
+            bot.boss_dict = json.load(outfile, object_hook=
+            lambda d: namedtuple('X', d.keys())
+            (*d.values()))
         print(bot.boss_dict)
 
 
