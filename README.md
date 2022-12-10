@@ -82,4 +82,4 @@ this project tested me in every way.
  - [discord.py Discord Server](discord.gg/dpy)
  - [Alex Zades -- helped with cattrs](https://github.com/AlexZades)
  - [OnionCult Discord! -- there wouldn't be a bot without them to use it!](https://discord.com/invite/onioncult)
- - VanLyden/Lama -- all the art for the bot was kindly done by her!
+ - [VanLyden/Lama](https://sites.google.com/view/lama-alnatour-portfolio/portfolio/digital-art) -- all the art for the bot was kindly done by her!
