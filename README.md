@@ -79,7 +79,7 @@ this project tested me in every way.
 
 ## Acknowledgements ♥
 
- - [discord.py Discord Server (especially all of the Mayas and helpers)](discord.gg/dpy)
+ - [discord.py Discord Server](discord.gg/dpy)
  - [Alex Zades -- helped with cattrs](https://github.com/AlexZades)
  - [OnionCult Discord! -- there wouldn't be a bot without them to use it!](https://discord.com/invite/onioncult)
  - VanLyden/Lama -- all the art for the bot was kindly done by her!
