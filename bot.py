@@ -456,7 +456,8 @@ def run_bot():
         guild = interaction.guild;
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
-                user = bot.get_user(i["user_id"])
+                user = guild.get_member(i["user_id"])
+                print(user)
                 i["username"] = user.display_name
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
