@@ -513,11 +513,14 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     ct = unformatted_time.strftime("%H:%M:%S")
     if name == 'dragon':
         clr = 0xFF6060
+        display_name = "RVD"
     elif name == 'avatar':
         clr = 0xB900A2
+        display_name = "AOD"
     else:
         clr = 0x58C7CF
-    embed = discord.Embed(title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}", color=clr)
+        display_name = "TLA"
+    embed = discord.Embed(title=f"lv.{curr_boss.level} {display_name}", color=clr)
     embed.add_field(name="> __Health__",
                     value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                     inline=True)
