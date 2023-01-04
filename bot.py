@@ -10,7 +10,6 @@ import csv, io
 import sys, traceback
 import pandas as pd
 import linecache
-import jsonpickle
 from ast import literal_eval
 from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -24,7 +23,7 @@ from discord.ui import Button, View
 # FINALS
 guild_id = 1036888929850359840
 admin_roles = []
-valid_channels = ['aod', 'tla', 'rvd']
+valid_channels = ['avatar', 'living_abyss', 'dragon']
 guilds = {
     "toasted": None,
     "pearl": None,
@@ -36,9 +35,9 @@ guilds = {
 }
 
 ping_roles = {
-    "aod": 1047787785895038986,
-    "tla": 1047787857357590538,
-    "rvd": 1042512104059568138
+    "avatar": 1047787785895038986,
+    "living_abyss": 1047787857357590538,
+    "dragon": 1042512104059568138
 }
 
 def run_bot():
@@ -106,9 +105,9 @@ def run_bot():
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
             ct = unformatted_time.strftime("%H:%M:%S")
-            if name == 'rvd':
+            if name == 'dragon':
                 clr = 0xFF6060
-            elif name == 'aod':
+            elif name == 'avatar':
                 clr = 0xB900A2
             else:
                 clr = 0x58C7CF
@@ -280,9 +279,9 @@ def run_bot():
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
             ct = unformatted_time.strftime("%H:%M:%S")
-            if name == 'rvd':
+            if name == 'dragon':
                 clr = 0xFF6060
-            elif name == 'aod':
+            elif name == 'avatar':
                 clr = 0xB900A2
             else:
                 clr = 0x58C7CF
@@ -331,9 +330,9 @@ def run_bot():
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
             ct = unformatted_time.strftime("%H:%M:%S")
-            if name == 'rvd':
+            if name == 'dragon':
                 clr = 0xFF6060
-            elif name == 'aod':
+            elif name == 'avatar':
                 clr = 0xB900A2
             else:
                 clr = 0x58C7CF
@@ -512,9 +511,9 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     tz = pytz.timezone("Asia/Seoul")
     unformatted_time = datetime.now(tz)
     ct = unformatted_time.strftime("%H:%M:%S")
-    if name == 'rvd':
+    if name == 'dragon':
         clr = 0xFF6060
-    elif name == 'aod':
+    elif name == 'avatar':
         clr = 0xB900A2
     else:
         clr = 0x58C7CF
@@ -526,4 +525,3 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
                      icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
     return embed
-
