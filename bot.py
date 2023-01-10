@@ -102,11 +102,11 @@ def run_bot():
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
-            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
+            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp:
                 await interaction.edit_original_response(
-                    content="Please double check that you input the exact, correct number for damage (will not accept comma"
-                    " separated numbers or numbers ending with 'm' (123.4m). If you want to kill the boss, please"
-                    " use `/admin_kill` instead. If there is some other error: please contact c0nD.")
+                        content="Please double check that you input a full integer value, correct number for damage"
+                        " (will not accept comma separated numbers or numbers ending with 'm' (123.4m)). If you want"
+                        " to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact c0nD.")
                 return
             curr_boss.admin_hit(damage)
 
@@ -124,9 +124,15 @@ def run_bot():
             else:
                 clr = 0x58C7CF
                 display_name = "TLA"
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**_ADMIN_ did {damage:,} damage"
-                                              f" to the {display_name}**")
+            
+            if damage < 0 and damage != -1:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                  description=f"**`ADMIN` healed {(-1*damage):,} HP"
+                                              f" for the {display_name}**")
+            else:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**`ADMIN` did {damage:,} damage"
+                                                f" to the {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
