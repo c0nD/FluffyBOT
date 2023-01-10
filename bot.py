@@ -171,10 +171,10 @@ def run_bot():
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await interaction.edit_original_response(embed=embed)
             
-            if is_sweeper(curr_boss):
-                await interaction.followup.send("Test")
-            else:
-                await interaction.followup.send("Test2")
+            ping = call_sweeper(interaction, curr_boss)
+            if ping != -1:
+                await interaction.followup.send(f"{ping.mention}")
+            
 
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
     @app_commands.guild_only()
@@ -214,6 +214,74 @@ def run_bot():
                                                     allowed_mentions=allowed_mentions)
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.followup.send(embed=embed)
+            
+    @bot.tree.command(name="insert_hit", description="Inserts a hit for another user. (INSERTING A WRONG USER_ID WILL BREAK THE BOT)")
+    @app_commands.describe(user_id="Enter the user's discord ID (dev mode) that you'd like to insert.")
+    @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
+    @app_commands.describe(ticket_used="Enter 'true' or 'false' whether or not a ticket should be used.")
+    @app_commands.guild_only()
+    async def insert_hit(interaction: discord.Interaction, user_id: str, damage: str, ticket_used: str):
+        
+        damage = sanitize_int(damage)
+        user_id = int(user_id)
+        # cause people are stupid
+        if ticket_used == "yes": ticket_used = "true"
+        elif ticket_used == "no": ticket_used = "false"
+        ticket_used = bool(ticket_used.lower().capitalize())
+        
+        await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.delete_original_response()
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
+                await interaction.followup.send(
+                    "Please double check that you input the exact, correct number for damage (will not accept comma"
+                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
+                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
+                    " neither of these are the case, please contact your staff to get them to reset the boss"
+                    " at it's current level and hp.")
+                await interaction.delete_original_response()
+                return
+            
+            if interaction.user.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(damage, user_id, ticket_used, False, curr_boss.level)
+            else:
+                curr_boss.take_damage(damage, user_id, ticket_used, True, curr_boss.level)
+
+            name = curr_boss.name
+            tz = pytz.timezone("Asia/Seoul")
+            unformatted_time = datetime.now(tz)
+            ct = unformatted_time.strftime("%H:%M:%S")
+            if name == 'dragon':
+                clr = 0xFF6060
+                display_name = "RVD"
+            elif name == 'avatar':
+                clr = 0xB900A2
+                display_name = "AOD"
+            else:
+                clr = 0x58C7CF
+                display_name = "TLA"
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                  description=f"**`ADMIN` inserted a hit for {damage:,} damage"
+                                              f" to the {display_name}**")
+            embed.add_field(name="> __New Health__",
+                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
+                            inline=True)
+            embed.set_author(name=interaction.user.display_name,
+                             icon_url=interaction.user.display_avatar.url)
+            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
+            await interaction.followup.send(embed=embed)
+            
+            ping = call_sweeper(interaction, curr_boss)
+            if ping != -1:
+                await interaction.followup.send(f"{ping.mention}")
+            
+            await interaction.delete_original_response()
 
     @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
@@ -410,6 +478,11 @@ def run_bot():
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await interaction.followup.send(embed=embed)
+            
+            ping = call_sweeper(interaction, curr_boss)
+            if ping != -1:
+                await interaction.followup.send(f"{ping.mention}")
+            
             await interaction.delete_original_response()
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
