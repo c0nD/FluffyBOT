@@ -31,7 +31,15 @@ guilds = {
     "royal": None,
     "spring": None,
     "fall": None,
-    "onion": None
+    "onion": None,
+    
+    "toasted_sandbox": None,
+    "pearl_sandbox": None,
+    "burnt_sandbox": None,
+    "royal_sandbox": None,
+    "spring_sandbox": None,
+    "fall_sandbox": None,
+    "onion_sandbox": None,
 }
 
 ping_roles = {
@@ -121,7 +129,6 @@ def run_bot():
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await interaction.edit_original_response(embed=embed)
-            await interaction.delete_original_response()
 
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
     @app_commands.guild_only()
@@ -528,3 +535,4 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
                      icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
     return embed
+
