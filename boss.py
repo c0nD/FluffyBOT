@@ -32,13 +32,14 @@ class Boss:
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999,
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999]
 
+
         self.hp = self.hp_list[self.level]
     def set_hp(self, hp):
         self.hp = hp
 
-    def take_damage(self, damage, user, used_ticket, split):
+    def take_damage(self, damage, user, used_ticket, split, boss_level):
         self.hp -= damage
-        self.hits.append(Hit(damage, user, used_ticket, split))
+        self.hits.append(Hit(damage, user, used_ticket, split, boss_level))
 
     def killed(self):
         self.level += 1
@@ -68,6 +69,7 @@ class Hit:
     user_id: int
     ticket_used: bool
     split: bool
+    boss_level: int
     username: str = ''
 
 
