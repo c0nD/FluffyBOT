@@ -271,7 +271,7 @@ def run_bot():
             await interaction.response.send_message("Cannot create boss in this channel. Please try"
                                                     " this command again in a valid channel.")
 
-    # USER COMMANDS
+    # =========================== USER COMMANDS ===========================
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.guild_only()
@@ -296,9 +296,9 @@ def run_bot():
                 await interaction.delete_original_response()
                 return
             if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, interaction.user.id, True, False)
+                curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
             else:
-                curr_boss.take_damage(damage, interaction.user.id, True, True)
+                curr_boss.take_damage(damage, interaction.user.id, True, True, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
@@ -350,9 +350,9 @@ def run_bot():
                 await interaction.delete_original_response()
                 return
             if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, interaction.user.id, False, False)
+                curr_boss.take_damage(damage, interaction.user.id, False, False, curr_boss.level)
             else:
-                curr_boss.take_damage(damage, interaction.user.id, False, True)
+                curr_boss.take_damage(damage, interaction.user.id, False, True, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
@@ -390,7 +390,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True)
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
@@ -412,7 +412,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True)
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
