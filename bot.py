@@ -10,6 +10,7 @@ import csv, io
 import sys, traceback
 import pandas as pd
 import linecache
+import jsonpickle
 from ast import literal_eval
 from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -48,6 +49,12 @@ ping_roles = {
     "avatar": 1047787785895038986,
     "living_abyss": 1047787857357590538,
     "dragon": 1042512104059568138
+}
+
+sweeper_roles = {
+    "avatar": 1061881832280424529,
+    "living_abyss": 1061881839419150376,
+    "dragon": 1061881749098999808
 }
 
 def run_bot():
@@ -467,7 +474,7 @@ def run_bot():
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
-        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level"])
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp"])
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
 
         df_final.to_csv(r'data.csv', index=None)
@@ -476,7 +483,7 @@ def run_bot():
     @app_commands.guild_only()
     async def send_backup_csv(interaction: discord.Interaction):
         await interaction.response.send_message("Converting data to csv file...")
-        guild = interaction.guild;
+        guild = interaction.guild
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
                 user = guild.get_member(i["user_id"])
