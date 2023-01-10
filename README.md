@@ -53,6 +53,7 @@ In `bot.py` you will need to change:
 - `valid_channels` (optional) -> Names of channels bosses can be created in
 - `guilds` -> Change to any sister guilds (not servers) that can use the bot
 - `ping_roles` -> IDs of roles to be pinged when bosses are killed
+- `sweeper_roles` and `sweeper_requirements` -> IDs of roles and requirements for each guild
 
 ## Lessons Learned 👨‍🏫
 
