@@ -40,6 +40,8 @@ guilds = {
     "spring_sandbox": None,
     "fall_sandbox": None,
     "onion_sandbox": None,
+    
+    "dev": None
 }
 
 ping_roles = {
@@ -115,13 +117,16 @@ def run_bot():
             ct = unformatted_time.strftime("%H:%M:%S")
             if name == 'dragon':
                 clr = 0xFF6060
+                display_name = "RVD"
             elif name == 'avatar':
                 clr = 0xB900A2
+                display_name = "AOD"
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                display_name = "TLA"
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
                                   description=f"**_ADMIN_ did {damage:,} damage"
-                                              f" to the {str(interaction.channel.name).upper()}**")
+                                              f" to the {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
@@ -288,13 +293,16 @@ def run_bot():
             ct = unformatted_time.strftime("%H:%M:%S")
             if name == 'dragon':
                 clr = 0xFF6060
+                display_name = "RVD"
             elif name == 'avatar':
                 clr = 0xB900A2
+                display_name = "AOD"
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                display_name = "TLA"
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
                                   description=f"**{interaction.user.mention} did {damage:,} damage"
-                                              f" to the {str(interaction.channel.name).upper()}**")
+                                              f" to the {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
@@ -339,13 +347,16 @@ def run_bot():
             ct = unformatted_time.strftime("%H:%M:%S")
             if name == 'dragon':
                 clr = 0xFF6060
+                display_name = "RVD"
             elif name == 'avatar':
                 clr = 0xB900A2
+                display_name = "AOD"
             else:
                 clr = 0x58C7CF
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {str(interaction.channel.name).upper()}",
+                display_name = "TLA"
+            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
                                   description=f"**{interaction.user.mention} did {damage:,} damage"
-                                              f" to the {str(interaction.channel.name).upper()}**")
+                                              f" to the {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
