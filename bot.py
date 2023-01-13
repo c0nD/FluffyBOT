@@ -64,12 +64,17 @@ sweeper_requirements = {
         "dragon": 5_000_000
     },
     "fall": {
-        "avatar": 65_000_000,
-        "living_abyss": 70_000_000,
+        "avatar": 70_000_000,
+        "living_abyss": 85_000_000,
         "dragon": 5_000_000
     },
     "spring": {
-        "avatar": 35_000_000,
+        "avatar": 55_000_000,
+        "living_abyss": 50_000_000,
+        "dragon": 5_000_000
+    },
+    "burnt": {
+        "avatar": 40_000_000,
         "living_abyss": 50_000_000,
         "dragon": 5_000_000
     },
@@ -173,7 +178,7 @@ def run_bot():
             
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
-                await interaction.followup.send(f"{ping.mention}")
+                await interaction.channel.send(f"{ping.mention}")
             
 
     @bot.tree.command(name="admin_kill", description="KILL THE BOSS TO FIX THE LEVEL -- WILL NOT REGISTER AS A HIT.")
@@ -279,7 +284,7 @@ def run_bot():
             
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
-                await interaction.followup.send(f"{ping.mention}")
+                await interaction.channel.send(f"{ping.mention}")
             
             await interaction.delete_original_response()
 
@@ -422,7 +427,7 @@ def run_bot():
             
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
-                await interaction.followup.send(f"{ping.mention}")
+                await interaction.channel.send(f"{ping.mention}")
             
             await interaction.delete_original_response()
 
@@ -481,7 +486,7 @@ def run_bot():
             
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
-                await interaction.followup.send(f"{ping.mention}")
+                await interaction.channel.send(f"{ping.mention}")
             
             await interaction.delete_original_response()
 
@@ -680,4 +685,6 @@ def call_sweeper(interaction: discord.Interaction, curr_boss):
     
     if curr_boss.hp <= sweeper_requirements[guild][boss]:
         return discord.utils.get(interaction.guild.roles, id=sweeper_roles[boss])
+    
+    return -1
     
