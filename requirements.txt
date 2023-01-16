@@ -5,3 +5,4 @@ pytz
 pandas
 apscheduler
 datetime
+jsonpickle
