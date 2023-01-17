@@ -287,6 +287,42 @@ def run_bot():
                 await interaction.channel.send(f"{ping.mention}")
             
             await interaction.delete_original_response()
+            
+    @bot.tree.command(name="insert_kill", description="Inserts a kill for another user. (INSERTING A WRONG USER_ID WILL BREAK THE BOT)")
+    @app_commands.describe(user_id="Enter the user's discord ID (dev mode) that you'd like to insert.")
+    @app_commands.describe(ticket_used="Enter 'true' or 'false' whether or not a ticket should be used.")
+    @app_commands.describe(split="Enter 'true' or 'false' whether or not the hit was split.")
+    @app_commands.guild_only()
+    async def insert_kill(interaction: discord.Interaction, user_id: str, ticket_used: str, split: str):
+        # Sanitization of input
+        user_id = int(user_id)
+        # cause people are stupid
+        if ticket_used == "yes": ticket_used = "true"
+        elif ticket_used == "no": ticket_used = "false"
+        ticket_used = bool(ticket_used.lower().capitalize())
+        
+        if split == "yes": split = "true"
+        elif split == "no": split = "false"
+        split = bool(split.lower().capitalize())
+        
+        # Actually hitting the boss
+        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_boss.take_damage(curr_boss.hp, user_id, ticket_used, split, curr_boss.level)
+            curr_boss.killed()
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+            await interaction.followup.send(f"**{ping.mention} has been swept by `ADMIN`. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
+        await interaction.delete_original_response()
 
     @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
