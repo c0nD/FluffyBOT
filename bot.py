@@ -25,6 +25,7 @@ from discord.ui import Button, View
 guild_id = 1036888929850359840
 admin_roles = []
 valid_channels = ['avatar', 'living_abyss', 'dragon']
+split_threshold = 2
 guilds = {
     "toasted": None,
     "pearl": None,
@@ -334,10 +335,12 @@ def run_bot():
             return
         elif guilds[guild] is None:
             guilds[guild] = boss.Guild()
-        if str(interaction.channel.name).lower() in valid_channels:
-            new_boss = boss.Boss(interaction.channel.name, 1, guild)
+
+        _name = str(interaction.channel.name).lower()
+        if  _name in valid_channels:
             res = bool(bot.boss_dict.get(interaction.channel_id))
             if not res:
+                new_boss = boss.Boss(interaction.channel.name, 1, guild)
                 bot.boss_dict[interaction.channel_id] = new_boss
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
                                                         f"Boss for `{guild.capitalize()}`.**")
@@ -434,9 +437,17 @@ def run_bot():
                 return
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
+                curr_boss.current_users_hit.append(interaction.user.id)
             else:
                 curr_boss.take_damage(damage, interaction.user.id, True, True, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
+            count_hits = curr_boss.current_users_hit.count(interaction.user.id)
+
+            # Reminding users to split hits at a certain threshold
+            if count_hits >= split_threshold:
+                await interaction.channel.send(f"**{interaction.user.mention}, you have {count_hits} hits on this level. Please try to split your hits.**")
+            
+            # Embeds
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
@@ -493,9 +504,11 @@ def run_bot():
                 return
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, interaction.user.id, False, False, curr_boss.level)
+                curr_boss.current_users_hit.append(interaction.user.id)
             else:
                 curr_boss.take_damage(damage, interaction.user.id, False, True, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
+                
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
             unformatted_time = datetime.now(tz)
