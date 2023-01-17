@@ -597,9 +597,11 @@ def run_bot():
         guild = interaction.guild
         for key in bot.boss_dict:
             for i in bot.boss_dict[key]["hits"]:
-                user = guild.get_member(i["user_id"])
-                print(user)
-                i["username"] = user.display_name
+                try:
+                    user = guild.get_member(i["user_id"])
+                    i["username"] = user.display_name
+                except:
+                    i["username"] = "N/A"
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
@@ -610,8 +612,11 @@ def run_bot():
         guild = interaction.guild
         for key in bot.boss_dict:
             for i in bot.boss_dict[key].hits:
-                user = guild.get_member(i.user_id)
-                i.username = user.display_name
+                try:
+                    user = guild.get_member(i.user_id)
+                    i.username = user.display_name
+                except:
+                    i.username = "N/A"
         __convert_csv()
         await interaction.followup.send(file=discord.File('data.csv'))
 
