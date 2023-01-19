@@ -726,7 +726,7 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     return embed
 
 def call_sweeper(interaction: discord.Interaction, curr_boss):
-    reqs = ["onion", "fall", "spring"]
+    reqs = ["onion", "fall", "spring", "burnt"]
     if curr_boss.guild in reqs:
         guild = curr_boss.guild
     else:
