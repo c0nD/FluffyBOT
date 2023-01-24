@@ -614,8 +614,7 @@ def run_bot():
             outfile.write(json_object)
         print("Saved to json file.")
 
-    def __convert_csv():
-        __write_json()
+    def __convert_csv(crk_guild: str = "all"):
         with open('data.json') as f:
             data = json.load(f)
         df_main = (
@@ -635,13 +634,15 @@ def run_bot():
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
         df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp"])
+        if crk_guild != "all":
+            df_final = df_final[df_final["guild"] == crk_guild]
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
 
-        df_final.to_csv(r'data.csv', index=None)
+        df_final.to_csv(fr'data_{crk_guild}.csv', index=None)
 
     @bot.tree.command(name="send_backup_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
-    async def send_backup_csv(interaction: discord.Interaction):
+    async def send_backup_csv(interaction: discord.Interaction, crk_guild: str = "all"):
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
@@ -651,12 +652,16 @@ def run_bot():
                     i["username"] = user.display_name
                 except:
                     i["username"] = "N/A"
-        __convert_csv()
+        __write_json()
+        if crk_guild == "all":
+            for key in guilds:
+                __convert_csv(key)
+        __convert_csv(crk_guild)
         await interaction.followup.send(file=discord.File('data.csv'))
 
     @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
-    async def send_csv(interaction: discord.Interaction):
+    async def send_csv(interaction: discord.Interaction, crk_guild: str = "all"):
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
@@ -666,7 +671,11 @@ def run_bot():
                     i.username = user.display_name
                 except:
                     i.username = "N/A"
-        __convert_csv()
+        __write_json()
+        if crk_guild == "all":
+            for key in guilds:
+                __convert_csv(key)
+        __convert_csv(crk_guild)
         await interaction.followup.send(file=discord.File('data.csv'))
 
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
