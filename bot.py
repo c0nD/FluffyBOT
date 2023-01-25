@@ -25,7 +25,7 @@ from discord.ui import Button, View
 guild_id = 1036888929850359840
 admin_roles = []
 valid_channels = ['avatar', 'living_abyss', 'dragon']
-split_threshold = 2
+split_threshold = 3
 guilds = {
     "toasted": None,
     "pearl": None,
@@ -639,10 +639,14 @@ def run_bot():
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
 
         df_final.to_csv(fr'data_{crk_guild}.csv', index=None)
+        
+        return len(df_final.index)  # Returns the number of rows so that you dont send empty csv files
 
     @bot.tree.command(name="send_backup_csv", description="Loads the current data.json into a csv to be exported")
+    @app_commands.describe(crk_guild="Enter the guild you'd like to request the csv file from. (or 'all')")
     @app_commands.guild_only()
-    async def send_backup_csv(interaction: discord.Interaction, crk_guild: str = "all"):
+    async def send_backup_csv(interaction: discord.Interaction, crk_guild: str):
+        crk_guild = crk_guild.lower()
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
@@ -655,14 +659,17 @@ def run_bot():
         __write_json()
         if crk_guild == "all":
             for key in guilds:
-                __convert_csv(key)
-                await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
+                if __convert_csv(key) != 0:
+                    await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
+
     @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
+    @app_commands.describe(crk_guild="Enter the guild you'd like to request the csv file from. (or 'all')")
     @app_commands.guild_only()
-    async def send_csv(interaction: discord.Interaction, crk_guild: str = "all"):
+    async def send_csv(interaction: discord.Interaction, crk_guild: str):
+        crk_guild = crk_guild.lower()
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
@@ -675,8 +682,8 @@ def run_bot():
         __write_json()
         if crk_guild == "all":
             for key in guilds:
-                __convert_csv(key)
-                await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
+                if __convert_csv(key) != 0:
+                    await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
