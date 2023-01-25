@@ -75,8 +75,8 @@ sweeper_requirements = {
         "dragon": 5_000_000
     },
     "burnt": {
-        "avatar": 40_000_000,
-        "living_abyss": 50_000_000,
+        "avatar": -1,
+        "living_abyss": 55_000_000,
         "dragon": 5_000_000
     },
     "other": {
