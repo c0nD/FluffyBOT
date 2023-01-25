@@ -55,6 +55,7 @@ In `bot.py` you will need to change:
 - `ping_roles` -> IDs of roles to be pinged when bosses are killed
 - `sweeper_roles` and `sweeper_requirements` -> IDs of roles and requirements for each guild
 - `split_threshold` -> How many hits users are 'allowed' per boss level to encourage splitting
+- `split_exempt` -> Any guilds you'd like to be exempt from splitting hits
 
 ## Lessons Learned 👨‍🏫
 
