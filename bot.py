@@ -656,8 +656,9 @@ def run_bot():
         if crk_guild == "all":
             for key in guilds:
                 __convert_csv(key)
+                await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
-        await interaction.followup.send(file=discord.File('data.csv'))
+        await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
     @bot.tree.command(name="send_csv", description="Loads the current data.json into a csv to be exported")
     @app_commands.guild_only()
@@ -675,8 +676,9 @@ def run_bot():
         if crk_guild == "all":
             for key in guilds:
                 __convert_csv(key)
+                await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
-        await interaction.followup.send(file=discord.File('data.csv'))
+        await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
                                                     " FROM A BACKUP)")
