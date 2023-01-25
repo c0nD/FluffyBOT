@@ -86,6 +86,9 @@ sweeper_requirements = {
     }
 }
 
+split_exempt = ["burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
+                "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox",]
+
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
@@ -444,7 +447,7 @@ def run_bot():
             count_hits = curr_boss.current_users_hit.count(interaction.user.id)
 
             # Reminding users to split hits at a certain threshold
-            if count_hits >= split_threshold:
+            if count_hits >= split_threshold and curr_boss.guild not in split_exempt:
                 await interaction.channel.send(f"**{interaction.user.mention}, you have {count_hits} hits on this level. Please try to split your hits.**")
             
             # Embeds
