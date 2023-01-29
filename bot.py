@@ -86,7 +86,7 @@ sweeper_requirements = {
     }
 }
 
-split_exempt = ["burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
+split_exempt = ["onion", "burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
                 "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox",]
 
 def run_bot():
