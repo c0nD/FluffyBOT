@@ -88,3 +88,4 @@ this project tested me in every way.
  - [Alex Zades -- helped with cattrs](https://github.com/AlexZades)
  - [OnionCult Discord! -- there wouldn't be a bot without them to use it!](https://discord.com/invite/onioncult)
  - [VanLyden/Lama](https://sites.google.com/view/lama-alnatour/about) -- all the art for the bot was kindly done by her!
+ - Juzu -- the visual documentation/guide was generously made by her!
