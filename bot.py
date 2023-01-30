@@ -636,7 +636,7 @@ def run_bot():
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
-        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp"])
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp", "current_users_hit"])
         if crk_guild != "all":
             df_final = df_final[df_final["guild"] == crk_guild]
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
