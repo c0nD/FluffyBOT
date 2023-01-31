@@ -233,6 +233,12 @@ def run_bot():
         
         damage = sanitize_int(damage)
         user_id = int(user_id)
+
+        server_guild = interaction.guild
+        user = server_guild.get_member(user_id)
+        if user == None:
+            return await interaction.response.send_message("**Member is not in server!**\nPlease input the correct user id.")
+
         # cause people are stupid
         if ticket_used == "yes": ticket_used = "true"
         elif ticket_used == "no": ticket_used = "false"
