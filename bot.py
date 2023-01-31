@@ -34,7 +34,7 @@ guilds = {
     "spring": None,
     "fall": None,
     "onion": None,
-    
+
     "toasted_sandbox": None,
     "pearl_sandbox": None,
     "burnt_sandbox": None,
@@ -42,7 +42,7 @@ guilds = {
     "spring_sandbox": None,
     "fall_sandbox": None,
     "onion_sandbox": None,
-    
+
     "dev": None
 }
 
@@ -414,6 +414,60 @@ def run_bot():
             await interaction.response.send_message("Cannot create boss in this channel. Please try"
                                                     " this command again in a valid channel.")
 
+    @bot.tree.command(name="admin_undo", description="UNDOES THE MOST RECENT COMMAND TO FIX THE LEVEL/HP")
+    @app_commands.guild_only()
+    async def admin_undo(interaction: discord.Interaction):
+        await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            error = True
+            if len(curr_boss.hits) > 0:
+                hit = curr_boss.hits[-1]
+                user_id = hit.user_id
+                if hit.boss_level == curr_boss.level - 1:
+                    hit_type = "kill"
+                else:
+                    hit_type = hit.damage
+                curr_boss.admin_undo()
+                error = False
+
+            if error:
+                await interaction.followup.send(f"There are no hits to undo.")
+            else:
+                name = curr_boss.name
+                tz = pytz.timezone("Asia/Seoul")
+                unformatted_time = datetime.now(tz)
+                ct = unformatted_time.strftime("%H:%M:%S")
+                if name == 'dragon':
+                    clr = 0xFF6060
+                    display_name = "RVD"
+                elif name == 'avatar':
+                    clr = 0xB900A2
+                    display_name = "AOD"
+                else:
+                    clr = 0x58C7CF
+                    display_name = "TLA"
+                if hit_type == "kill":
+                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**`ADMIN` undid <@{user_id}>'s kill on {display_name}**")
+                else:
+                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**`ADMIN` undid <@{user_id}>'s {hit_type:,} damage on {display_name}**")
+                embed.add_field(name="> __New Health__",
+                                value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
+                                inline=True)
+                embed.set_author(name=interaction.user.display_name,
+                                icon_url=interaction.user.display_avatar.url)
+                embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
+                await interaction.followup.send(embed=embed)
+
+        await interaction.delete_original_response()
+
     # =========================== USER COMMANDS ===========================
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
@@ -541,6 +595,68 @@ def run_bot():
                 await interaction.channel.send(f"{ping.mention}")
             
             await interaction.delete_original_response()
+
+    @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
+    @app_commands.guild_only()
+    async def undo(interaction: discord.Interaction):
+        await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            error = True
+            if len(curr_boss.hits) > 0:
+                hit = curr_boss.hits[-1]
+                # check if the last command is a kill
+                if hit.boss_level == curr_boss.level - 1 and hit.user_id == interaction.user.id:
+                    hit_type = "kill"
+                    curr_boss.undo(-1)
+                    error = False
+
+                # find the latest command that's a hit on the current level
+                idx = len(curr_boss.hits) - 1
+                while error and idx >= 0 and curr_boss.hits[idx].boss_level >= curr_boss.level:
+                    hit = curr_boss.hits[idx]
+                    if hit.boss_level == curr_boss.level and hit.user_id == interaction.user.id:
+                        hit_type = hit.damage
+                        curr_boss.undo(idx)
+                        error = False
+                    idx -= 1
+
+            if error:
+                await interaction.followup.send(f"You can only undo hits on the current level, or kills on the last level if no other commands have been used after that.")
+            else:
+                name = curr_boss.name
+                tz = pytz.timezone("Asia/Seoul")
+                unformatted_time = datetime.now(tz)
+                ct = unformatted_time.strftime("%H:%M:%S")
+                if name == 'dragon':
+                    clr = 0xFF6060
+                    display_name = "RVD"
+                elif name == 'avatar':
+                    clr = 0xB900A2
+                    display_name = "AOD"
+                else:
+                    clr = 0x58C7CF
+                    display_name = "TLA"
+                if hit_type == "kill":
+                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**{interaction.user.mention} undid a kill on {display_name}**")
+                else:
+                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**{interaction.user.mention} undid {hit_type:,} damage on {display_name}**")
+                embed.add_field(name="> __New Health__",
+                                value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
+                                inline=True)
+                embed.set_author(name=interaction.user.display_name,
+                                icon_url=interaction.user.display_avatar.url)
+                embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
+                await interaction.followup.send(embed=embed)
+
+        await interaction.delete_original_response()
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
     @app_commands.guild_only()
