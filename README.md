@@ -32,6 +32,7 @@ Click here to read the
   admin_hit
   admin_kill
   admin_revive
+  admin_undo
   create_boss
   delete_boss
   insert_boss

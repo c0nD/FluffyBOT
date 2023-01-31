@@ -74,6 +74,15 @@ class Boss:
         self.hp = self.hp_list[self.level]
         self.current_users_hit.clear()
 
+    def admin_undo(self):
+        hit = self.hits[-1]
+        if hit.boss_level == self.level:
+            self.hp += hit.damage
+        else:
+            self.hp = hit.damage
+            self.level = hit.boss_level
+        self.hits.pop(-1)
+
 @attr.define
 class Hit:
     damage: int
