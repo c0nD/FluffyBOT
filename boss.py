@@ -50,6 +50,14 @@ class Boss:
     def overkill_damage(self, damage):
         self.hp -= damage
 
+    def undo(self, idx):
+        hit = self.hits[idx]
+        if hit.boss_level == self.level:
+            self.hp += hit.damage
+        else:
+            self.hp = hit.damage
+            self.level = hit.boss_level
+        self.hits.pop(idx)
 
 
     # For fixing hps
