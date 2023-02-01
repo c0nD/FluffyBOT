@@ -485,7 +485,7 @@ def run_bot():
         if user == bot.user:
             return
         if reaction.message.author == bot.user and reaction.emoji == "✅":
-            await reaction.message.channel.send(f"**{username.name} is done.**")
+            await reaction.message.channel.send(f"**{username.display_name} is done.**")
             bot.boss_dict[reaction.message.channel.id].is_done = True
             await reaction.message.delete()
 
@@ -561,7 +561,7 @@ def run_bot():
             # Checking if the user is done
             msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
             await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 5 minutes
+            await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
@@ -635,7 +635,7 @@ def run_bot():
             # Checking if the user is done
             msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
             await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 5 minutes
+            await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
@@ -668,7 +668,7 @@ def run_bot():
         # Checking if the user is done
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 5 minutes
+        await asyncio.sleep(20 * 60)  # wait for 20 minutes
         if not bot.boss_dict[msg.channel.id].is_done:
             bot.boss_dict[msg.channel.id].is_done = True
             await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
@@ -700,11 +700,12 @@ def run_bot():
         # Checking if the user is done
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 5 minutes
+        await asyncio.sleep(20 * 60)  # wait for 20 minutes
         if not bot.boss_dict[msg.channel.id].is_done:
             bot.boss_dict[msg.channel.id].is_done = True
             await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
         await msg.delete()
+
 
     # =========================== NON-ATTACKING COMMANDS ===========================
     
@@ -835,7 +836,11 @@ def run_bot():
     @app_commands.describe(crk_guild="Enter the guild you'd like to request the csv file from. (or 'all')")
     @app_commands.guild_only()
     async def send_backup_csv(interaction: discord.Interaction, crk_guild: str):
+        # Input sanitization
         crk_guild = crk_guild.lower()
+        if crk_guild not in guilds:
+            await interaction.response.send_message("Please make sure you have input the correct guild.")
+            return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
@@ -863,7 +868,6 @@ def run_bot():
         if crk_guild not in guilds:
             await interaction.response.send_message("Please make sure you have input the correct guild.")
             return 
-
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
