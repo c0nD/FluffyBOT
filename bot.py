@@ -1,4 +1,5 @@
 import attrs
+import asyncio
 import boss
 import cattrs
 import discord
@@ -87,7 +88,7 @@ sweeper_requirements = {
 }
 
 split_exempt = ["onion", "burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
-                "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox",]
+                "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox", "dev"]
 
 def run_bot():
     # Boring setup
@@ -475,11 +476,26 @@ def run_bot():
         await interaction.delete_original_response()
 
     # =========================== USER COMMANDS ===========================
+    
+    # Setup event for done command
+    @bot.event
+    async def on_reaction_add(reaction, user):
+        guild = reaction.message.guild
+        username = guild.get_member(user.id)
+        if user == bot.user:
+            return
+        if reaction.message.author == bot.user and reaction.emoji == "✅":
+            await reaction.message.channel.send(f"**{username.name} is done.**")
+            bot.boss_dict[reaction.message.channel.id].is_done = True
+            await reaction.message.delete()
+
+    
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.guild_only()
     async def hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
@@ -539,7 +555,19 @@ def run_bot():
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
             
+            # Deleting the defer
             await interaction.delete_original_response()
+            
+            # Checking if the user is done
+            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+            await msg.add_reaction("✅")
+            await asyncio.sleep(20 * 60)  # wait for 5 minutes
+            if not bot.boss_dict[msg.channel.id].is_done:
+                bot.boss_dict[msg.channel.id].is_done = True
+                await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+            await msg.delete()
+
+
 
     # Hit command for when you don't want it to subtract a ticket
     @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
@@ -547,6 +575,7 @@ def run_bot():
     @app_commands.guild_only()
     async def resume_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
+        bot.boss_dict[msg.channel.id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
@@ -600,8 +629,85 @@ def run_bot():
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
             
+            # Deleting the defer
             await interaction.delete_original_response()
+            
+            # Checking if the user is done
+            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+            await msg.add_reaction("✅")
+            await asyncio.sleep(20 * 60)  # wait for 5 minutes
+            if not bot.boss_dict[msg.channel.id].is_done:
+                bot.boss_dict[msg.channel.id].is_done = True
+                await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+            await msg.delete()
 
+
+    @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
+    @app_commands.guild_only()
+    async def killed(interaction: discord.Interaction):
+        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
+        bot.boss_dict[msg.channel.id].is_done = False
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
+            curr_boss.killed()
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
+        await interaction.delete_original_response()  # Deleting the defer
+            
+
+        # Checking if the user is done
+        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+        await msg.add_reaction("✅")
+        await asyncio.sleep(20 * 60)  # wait for 5 minutes
+        if not bot.boss_dict[msg.channel.id].is_done:
+            bot.boss_dict[msg.channel.id].is_done = True
+            await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+        await msg.delete()
+
+    # Killed command for when you don't want it to subtract a ticket
+    @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
+    @app_commands.guild_only()
+    async def bonus_kill(interaction: discord.Interaction):
+        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
+        bot.boss_dict[msg.channel.id].is_done = False
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(
+                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            return
+        if str(interaction.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True, curr_boss.level)
+            curr_boss.killed()
+            allowed_mentions = discord.AllowedMentions(everyone=True)
+            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
+                                                    allowed_mentions=allowed_mentions)
+            embed = get_hp_embed(interaction, curr_boss)
+            await interaction.followup.send(embed=embed)
+        await interaction.delete_original_response()  # Deleting the defer
+            
+        # Checking if the user is done
+        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+        await msg.add_reaction("✅")
+        await asyncio.sleep(20 * 60)  # wait for 5 minutes
+        if not bot.boss_dict[msg.channel.id].is_done:
+            bot.boss_dict[msg.channel.id].is_done = True
+            await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+        await msg.delete()
+
+    # =========================== NON-ATTACKING COMMANDS ===========================
+    
     @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
     @app_commands.guild_only()
     async def undo(interaction: discord.Interaction):
@@ -633,7 +739,8 @@ def run_bot():
                     idx -= 1
 
             if error:
-                await interaction.followup.send(f"You can only undo hits on the current level, or kills on the last level if no other commands have been used after that.")
+                await interaction.followup.send(f"You can only undo hits on the current level, or kills "
+                                                "on the last level if no other commands have been used after that.")
             else:
                 name = curr_boss.name
                 tz = pytz.timezone("Asia/Seoul")
@@ -662,49 +769,6 @@ def run_bot():
                 embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
                 await interaction.followup.send(embed=embed)
 
-        await interaction.delete_original_response()
-
-    @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
-    @app_commands.guild_only()
-    async def killed(interaction: discord.Interaction):
-        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        res = bool(bot.boss_dict.get(interaction.channel_id))
-        if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
-            curr_boss.killed()
-            allowed_mentions = discord.AllowedMentions(everyone=True)
-            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
-            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
-                                                    allowed_mentions=allowed_mentions)
-            embed = get_hp_embed(interaction, curr_boss)
-            await interaction.followup.send(embed=embed)
-        await interaction.delete_original_response()
-
-    # Killed command for when you don't want it to subtract a ticket
-    @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
-    @app_commands.guild_only()
-    async def bonus_kill(interaction: discord.Interaction):
-        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        res = bool(bot.boss_dict.get(interaction.channel_id))
-        if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True, curr_boss.level)
-            curr_boss.killed()
-            allowed_mentions = discord.AllowedMentions(everyone=True)
-            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
-            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
-                                                    allowed_mentions=allowed_mentions)
-            embed = get_hp_embed(interaction, curr_boss)
-            await interaction.followup.send(embed=embed)
         await interaction.delete_original_response()
 
     @bot.tree.command(name="hp", description="Check the HP of the boss.")
@@ -758,7 +822,7 @@ def run_bot():
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
-        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp", "current_users_hit"])
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp", "current_users_hit", "is_done"])
         if crk_guild != "all":
             df_final = df_final[df_final["guild"] == crk_guild]
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
