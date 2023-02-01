@@ -564,7 +564,7 @@ def run_bot():
             await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
             await msg.delete()
 
 
@@ -638,7 +638,7 @@ def run_bot():
             await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
             await msg.delete()
 
 
@@ -670,7 +670,7 @@ def run_bot():
         await asyncio.sleep(20 * 60)  # wait for 20 minutes
         if not bot.boss_dict[msg.channel.id].is_done:
             bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
         await msg.delete()
 
     # Killed command for when you don't want it to subtract a ticket
@@ -702,7 +702,7 @@ def run_bot():
         await asyncio.sleep(20 * 60)  # wait for 20 minutes
         if not bot.boss_dict[msg.channel.id].is_done:
             bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**5 minutes has passed! Defaulting to done.**")
+            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
         await msg.delete()
 
 
