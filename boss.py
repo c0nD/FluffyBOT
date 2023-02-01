@@ -11,6 +11,7 @@ class Boss:
     hp_list: list = []
     hits: list = []
     current_users_hit: list = []
+    is_done: bool = False
 
     def __attrs_post_init__(self):
         # Boss HP at each level : index = level
@@ -34,6 +35,8 @@ class Boss:
 
         self.hp = self.hp_list[self.level]
         self.current_users_hit = []
+        is_done = True
+
         
     def set_hp(self, hp):
         self.hp = hp
