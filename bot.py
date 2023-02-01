@@ -575,7 +575,7 @@ def run_bot():
     @app_commands.guild_only()
     async def resume_hit(interaction: discord.Interaction, damage: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        bot.boss_dict[msg.channel.id].is_done = False
+        bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
@@ -646,7 +646,7 @@ def run_bot():
     @app_commands.guild_only()
     async def killed(interaction: discord.Interaction):
         await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        bot.boss_dict[msg.channel.id].is_done = False
+        bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
@@ -664,7 +664,6 @@ def run_bot():
             await interaction.followup.send(embed=embed)
         await interaction.delete_original_response()  # Deleting the defer
             
-
         # Checking if the user is done
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         await msg.add_reaction("✅")
@@ -679,7 +678,7 @@ def run_bot():
     @app_commands.guild_only()
     async def bonus_kill(interaction: discord.Interaction):
         await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        bot.boss_dict[msg.channel.id].is_done = False
+        bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(
