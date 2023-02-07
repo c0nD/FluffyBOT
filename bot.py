@@ -140,13 +140,17 @@ def run_bot():
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
+            invalid_int_err = "Please double check that you input a full integer value, correct number for damage"
+            " (will not accept comma separated numbers or numbers ending with 'm' (123.4m)). If you want"
+            " to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact c0nD."
             curr_boss = bot.boss_dict[interaction.channel_id]
-            damage = sanitize_int(damage)
+            try:
+                damage = int(damage)
+            except:
+                await interaction.response.send_message(f"{invalid_int_err}")
+                return
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp:
-                await interaction.edit_original_response(
-                        content="Please double check that you input a full integer value, correct number for damage"
-                        " (will not accept comma separated numbers or numbers ending with 'm' (123.4m)). If you want"
-                        " to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact c0nD.")
+                await interaction.edit_original_response(content=invalid_int_err)
                 return
             curr_boss.admin_hit(damage)
 
