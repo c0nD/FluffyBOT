@@ -44,7 +44,7 @@ guilds = {
     "fall_sandbox": None,
     "onion_sandbox": None,
 
-    "dev": None
+    "dev": None,
 }
 
 ping_roles = {
@@ -837,7 +837,7 @@ def run_bot():
     async def send_backup_csv(interaction: discord.Interaction, crk_guild: str):
         # Input sanitization
         crk_guild = crk_guild.lower()
-        if crk_guild not in guilds:
+        if crk_guild not in guilds and crk_guild != "all":
             await interaction.response.send_message("Please make sure you have input the correct guild.")
             return 
         await interaction.response.send_message("Converting data to csv file...")
@@ -864,7 +864,7 @@ def run_bot():
     async def send_csv(interaction: discord.Interaction, crk_guild: str):
         # Input sanitization
         crk_guild = crk_guild.lower()
-        if crk_guild not in guilds:
+        if crk_guild not in guilds and crk_guild != "all":
             await interaction.response.send_message("Please make sure you have input the correct guild.")
             return 
         await interaction.response.send_message("Converting data to csv file...")
