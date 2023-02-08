@@ -50,6 +50,7 @@ def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
     bot.boss_dict = {}
+    bot.task_dict = {}
 
     @bot.event
     async def on_ready():
@@ -94,7 +95,7 @@ def run_bot():
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
             await msg.delete()
-            del bot.boss_dict[msg.channel.id].done_tasks[interaction.user.id]
+            del bot.task_dict[msg.channel.id][interaction.user.id]
         except asyncio.CancelledError:
             await msg.delete()
 
@@ -317,6 +318,7 @@ def run_bot():
             if not res:
                 new_boss = boss.Boss(interaction.channel.name, 1, guild)
                 bot.boss_dict[interaction.channel_id] = new_boss
+                bot.task_dict[interaction.channel_id] = {}
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
                                                         f"Boss for `{guild.capitalize()}`.**")
                 embed = get_hp_embed(interaction, new_boss)
@@ -452,13 +454,14 @@ def run_bot():
     async def on_reaction_add(reaction, user):
         if str(reaction.message.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[reaction.message.channel.id]
+            curr_tasks = bot.task_dict[reaction.message.channel.id]
             if user == bot.user:
                 return
-            if user.id in curr_boss.done_tasks and reaction.message.author == bot.user and reaction.emoji == "✅" and reaction.message.content == "**Are you done with all of your attack(s)?**":
+            if user.id in curr_tasks and reaction.message.author == bot.user and reaction.emoji == "✅" and reaction.message.content == "**Are you done with all of your attack(s)?**":
                 guild = reaction.message.guild
                 username = guild.get_member(user.id)
-                curr_boss.done_tasks[user.id].cancel()
-                del curr_boss.done_tasks[user.id]
+                curr_tasks[user.id].cancel()
+                del curr_tasks[user.id]
                 await reaction.message.channel.send(f"**{username.display_name} is done.**")
                 bot.boss_dict[reaction.message.channel.id].is_done = True
         
@@ -484,6 +487,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_tasks = bot.task_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
@@ -543,10 +547,10 @@ def run_bot():
             
             # Checking if the user is done
             user = interaction.user.id
-            if user in curr_boss.done_tasks:
-                curr_boss.done_tasks[user].cancel()
-                del curr_boss.done_tasks[user]
-            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
+            if user in curr_tasks:
+                curr_tasks[user].cancel()
+                del curr_tasks[user]
+            curr_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # Hit command for when you don't want it to subtract a ticket
     @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
@@ -562,6 +566,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_tasks = bot.task_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
@@ -607,10 +612,10 @@ def run_bot():
             
             # Checking if the user is done
             user = interaction.user.id
-            if user in curr_boss.done_tasks:
-                curr_boss.done_tasks[user].cancel()
-                del curr_boss.done_tasks[user]
-            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
+            if user in curr_tasks:
+                curr_tasks[user].cancel()
+                del curr_tasks[user]
+            curr_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
@@ -624,6 +629,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_tasks = bot.task_dict[interaction.channel_id]
             if curr_boss.last_kill_id == interaction.user.id:
                 goofed = True
             else:
@@ -646,10 +652,10 @@ def run_bot():
             
         # Checking if the user is done
         user = interaction.user.id
-        if user in curr_boss.done_tasks:
-            curr_boss.done_tasks[user].cancel()
-            del curr_boss.done_tasks[user]
-        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
+        if user in curr_tasks:
+            curr_tasks[user].cancel()
+            del curr_tasks[user]
+        curr_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # Killed command for when you don't want it to subtract a ticket
     @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
@@ -663,6 +669,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            curr_tasks = bot.task_dict[interaction.channel_id]
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, False, curr_boss.level)
             else:
@@ -678,10 +685,10 @@ def run_bot():
             
         # Checking if the user is done
         user = interaction.user.id
-        if user in curr_boss.done_tasks:
-            curr_boss.done_tasks[user].cancel()
-            del curr_boss.done_tasks[user]
-        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
+        if user in curr_tasks:
+            curr_tasks[user].cancel()
+            del curr_tasks[user]
+        curr_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     # =========================== NON-ATTACKING COMMANDS ===========================
@@ -921,11 +928,7 @@ def run_bot():
                     i.username = user.display_name
                 except:
                     i.username = "N/A"
-        try:
-            __write_json()
-        except:
-            await interaction.followup.send("Please wait until all guild members are done attacking.")
-            return
+        __write_json()
         if crk_guild == "all":
             for key in guilds:
                 if __convert_csv(key) != 0:
