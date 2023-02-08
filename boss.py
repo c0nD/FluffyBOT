@@ -13,6 +13,8 @@ class Boss:
     current_users_hit: list = []
     is_done: bool = False
     done_tasks: dict = {}
+    queue: list = []
+
 
     def __attrs_post_init__(self):
         # Boss HP at each level : index = level
@@ -36,6 +38,7 @@ class Boss:
 
         self.hp = self.hp_list[self.level]
         self.current_users_hit = []
+        self.queue = []
         is_done = True
 
         
