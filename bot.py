@@ -439,6 +439,20 @@ def run_bot():
                 await interaction.followup.send(embed=embed)
 
         await interaction.delete_original_response()
+        
+    @bot.tree.command(name="admin_remove_queue", description="Removes the person currently in the queue")
+    @app_commands.guild_only()
+    async def admin_remove_queue(interaction: discord.Interaction):
+        await interaction.response.send_message("Attempting to remove user from queue...")
+        if len(bot.boss_dict[interaction.channel_id].queue) != 0:
+            removed_user = bot.boss_dict[interaction.channel_id].queue.pop(0)
+            await interaction.channel.send(f"**{removed_user.mention}** has been removed from the queue.")
+            await interaction.channel.send(f"{bot.boss_dict[interaction.channel_id].queue[0].mention}"
+                                        " is next up in the queue. Attacks are reserved to them.")
+        else:
+            await interaction.followup.send("Queue is empty. Cannot remove anyone.")
+        await interaction.delete_original_response()
+            
 
     # =========================== USER COMMANDS ===========================
     
