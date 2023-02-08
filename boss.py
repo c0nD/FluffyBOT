@@ -12,7 +12,6 @@ class Boss:
     hits: list = []
     current_users_hit: list = []
     is_done: bool = False
-    done_tasks: dict = {}
     queue: list = []
     last_kill_id: int = 0
 
