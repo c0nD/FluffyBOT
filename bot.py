@@ -13,6 +13,7 @@ import sys, traceback
 import pandas as pd
 import linecache
 import jsonpickle
+import copy
 from ast import literal_eval
 from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -837,6 +838,7 @@ def run_bot():
 
     # ------------------------ Reading / Writing to json ------------------------
     def __write_json():
+        # Task isn't serializable so we remove them before saving
         json_object = json.dumps(cattrs.unstructure(bot.boss_dict), indent=4)
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
@@ -917,7 +919,11 @@ def run_bot():
                     i.username = user.display_name
                 except:
                     i.username = "N/A"
-        __write_json()
+        try:
+            __write_json()
+        except:
+            await interaction.followup.send("Please wait until all guild members are done attacking.")
+            return
         if crk_guild == "all":
             for key in guilds:
                 if __convert_csv(key) != 0:
