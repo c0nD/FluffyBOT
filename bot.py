@@ -89,22 +89,21 @@ def run_bot():
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         try:
             await msg.add_reaction("✅")
-            await asyncio.sleep(15)  # wait for 20 minutes
+            await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
             await msg.delete()
             del bot.boss_dict[msg.channel.id].done_tasks[interaction.user.id]
-            
-            # Checking the queue
-            if bot.boss_dict[msg.channel.id].is_done:
-                if len(bot.boss_dict[msg.channel.id].queue) != 0:
-                    bot.boss_dict[msg.channel.id].queue.pop(0)
-                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
-                                            " is next up in the queue. Attacks are reserved to them.")
         except asyncio.CancelledError:
             await msg.delete()
     
+    def ask_done(interaction: discord.Interaction):
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
@@ -439,20 +438,6 @@ def run_bot():
                 await interaction.followup.send(embed=embed)
 
         await interaction.delete_original_response()
-        
-    @bot.tree.command(name="admin_remove_queue", description="Removes the person currently in the queue")
-    @app_commands.guild_only()
-    async def admin_remove_queue(interaction: discord.Interaction):
-        await interaction.response.send_message("Attempting to remove user from queue...")
-        if len(bot.boss_dict[interaction.channel_id].queue) != 0:
-            removed_user = bot.boss_dict[interaction.channel_id].queue.pop(0)
-            await interaction.channel.send(f"**{removed_user.mention}** has been removed from the queue.")
-            await interaction.channel.send(f"{bot.boss_dict[interaction.channel_id].queue[0].mention}"
-                                        " is next up in the queue. Attacks are reserved to them.")
-        else:
-            await interaction.followup.send("Queue is empty. Cannot remove anyone.")
-        await interaction.delete_original_response()
-            
 
     # =========================== USER COMMANDS ===========================
     
@@ -498,10 +483,6 @@ def run_bot():
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
-            if curr_boss.last_kill_id == interaction.user.id:
-                goofed = True
-            else:
-                goofed = False
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
@@ -542,9 +523,6 @@ def run_bot():
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
-            
-            if goofed:
-                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
             
             # Deleting the defer
             await interaction.delete_original_response()
@@ -632,10 +610,6 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            if curr_boss.last_kill_id == interaction.user.id:
-                goofed = True
-            else:
-                goofed = False
             curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -644,8 +618,6 @@ def run_bot():
                                                     allowed_mentions=allowed_mentions)
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.followup.send(embed=embed)
-            if goofed:
-                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
@@ -689,8 +661,8 @@ def run_bot():
     
     # queue as []. when adding use .append(), when removing, .pop(0)
     
-    @bot.tree.command(name="queue", description="Use /queue join to join the queue, or /queue leave to leave the queue.")
-    @app_commands.describe(param="Either 'join', 'leave', or 'position'/'pos'")
+    @bot.tree.command(name="queue", description="An optional queue system for queueing attacks.")
+    @app_commands.describe(param="Either 'join', 'leave', 'list', or 'position'/'pos'")
     @app_commands.guild_only()
     async def queue(interaction: discord.Interaction, param: str):
         await interaction.response.send_message("Attempting to queue...")  # deferring interaction
@@ -733,12 +705,27 @@ def run_bot():
                 await interaction.followup.send(f"**{name}'s** position: "
                                                 f"**{bot.boss_dict[interaction.channel_id].queue.index(interaction.user)+1}/{max_queue_length+1}**")
                 await interaction.delete_original_response()
+                return
             except ValueError:
                 await interaction.followup.send(f"**{name}** is not in the queue. Cannot check your position.")
                 await interaction.delete_original_response()
+                return
+                
+        elif param == "list":
+            if len(bot.boss_dict[interaction.channel_id].queue) != 0:
+                queue_str = "__ Current Queue __\n"
+                for pos in range(len(bot.boss_dict[interaction.channel_id].queue)):
+                    queue_str = queue_str + f"**({pos+1}/{max_queue_length+1}) - {bot.boss_dict[interaction.channel_id].queue[pos].display_name}**\n"
+                await interaction.followup.send(queue_str)
+                await interaction.delete_original_response()
+            else:
+                await interaction.followup.send("The queue is currently **empty**")
+                await interaction.delete_original_response()
+                return
+            
         
         else:
-            await interaction.followup.send(f"{INVALID_PARAM_ERR}")    
+            await interaction.followup.send(f"{INVALID_PARAM_ERR}")   
     
     @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
     @app_commands.guild_only()
