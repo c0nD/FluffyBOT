@@ -90,6 +90,31 @@ sweeper_requirements = {
 split_exempt = ["onion", "burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
                 "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox", "dev"]
 
+# ERRORS MADE TO BE CONSTANTS
+INVALID_INT_ERR = '''**Please double check that you input a full integer value, correct number for damage
+(will not accept comma separated numbers or numbers ending with 'm' (123.4m)). 
+If you want to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact a developer.**'''
+
+INSERT_HIT_ERR = '''**Please double check that you input the exact, correct number for damage
+(will not accept comma separated numbers or numbers ending with 'm' (123.4m). 
+If you killed the boss please use the `/killed` command before calling `/hit` if you just swept this boss.
+If neither of these are the case, please contact your staff to get them to reset the boss at it's current level and hp.**'''
+
+BOSS_SETUP_ERR = '''**A boss has not been set up in this channel. Check /help for more information.
+Please contact staff/a developer if you think this is a mistake.**'''
+
+INVALID_GUILD_ERR = '''**Invalid guild entered. Check /help for more information.
+Please contact staff/a developer if you think this is a mistake.**'''
+
+INVALID_BOSS_ERR = '''**Cannot create two bosses at once, or no boss exists in this channel. 
+If you want to reset the boss, please call `/delete_boss` first. Otherwise, use `/create_boss` to make a new boss.**'''
+
+INVALID_CHANNEL_ERR = "**Cannot create boss in this channel. Please try this command again in a valid channel.**"
+
+INVALID_HP_ERR = "**HP was set higher than boss level allows for. Please try again with valid HP.**"
+
+INVALID_UNDO_ERR = "**You can only undo hits on the current level, or kills on the last level if no other commands have been used after that.**"
+
 def run_bot():
     # Boring setup
     bot = Bot("$", member_cache_flags=MemberCacheFlags.all(), intents=Intents.all())
@@ -135,22 +160,18 @@ def run_bot():
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.edit_original_response(
-                content="A boss has not been set up in this channel. If this is a mistake: please contact c0nD.")
+            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
-            invalid_int_err = "Please double check that you input a full integer value, correct number for damage"
-            " (will not accept comma separated numbers or numbers ending with 'm' (123.4m)). If you want"
-            " to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact c0nD."
             curr_boss = bot.boss_dict[interaction.channel_id]
             try:
                 damage = int(damage)
             except:
-                await interaction.response.send_message(f"{invalid_int_err}")
+                await interaction.response.send_message(f"{INVALID_INT_ERR}")
                 return
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp:
-                await interaction.edit_original_response(content=invalid_int_err)
+                await interaction.edit_original_response(content=INVALID_INT_ERR)
                 return
             curr_boss.admin_hit(damage)
 
@@ -196,8 +217,8 @@ def run_bot():
         await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
+            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
+            await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -214,8 +235,8 @@ def run_bot():
     async def admin_revive(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.response.send_message(
-                "A boss has not been set up in this channel. If this is a mistake, please contact c0nD ")
+            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
+            await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -252,19 +273,13 @@ def run_bot():
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await interaction.followup.send(
-                    "Please double check that you input the exact, correct number for damage (will not accept comma"
-                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
-                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
-                    " neither of these are the case, please contact your staff to get them to reset the boss"
-                    " at it's current level and hp.")
+                await interaction.followup.send(f"{INSERT_HIT_ERR}")
                 await interaction.delete_original_response()
                 return
             
@@ -324,8 +339,8 @@ def run_bot():
         await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
+            await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -345,7 +360,7 @@ def run_bot():
     async def create_boss(interaction: discord.Interaction, guild: str):
         guild = guild.lower()
         if guild not in guilds:
-            await interaction.response.send_message("Invalid guild. Type `$help` for more information.")
+            await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
             return
         elif guilds[guild] is None:
             guilds[guild] = boss.Guild()
@@ -361,12 +376,9 @@ def run_bot():
                 embed = get_hp_embed(interaction, new_boss)
                 await interaction.followup.send(embed=embed)
             else:
-                await interaction.response.send_message(
-                    "Cannot create two bosses at once. If you want to reset the boss, please call "
-                    "`/delete_boss` first.")
+                await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
         else:
-            await interaction.response.send_message(
-                "Attempting to create a boss in a channel not designated to create bosses in.")
+            await interaction.response.send_message(f"{INVALID_CHANNEL_ERR}")
 
     @bot.tree.command(name="delete_boss", description="Delete the boss out of the current channel."
                                                       " Use carefully.")
@@ -379,8 +391,7 @@ def run_bot():
                                                      f" {str(interaction.channel.name).upper()}`**")
                 del bot.boss_dict[interaction.channel_id]
             except Exception as e:
-                await interaction.response.send_message(f"Cannot delete a boss that does not exist. Please create "
-                                                        f"a boss before trying to call `/delete_boss`.")
+                await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
 
     @bot.tree.command(name="insert_boss", description="Insert a boss with stats. (PLEASE USE IN LAST CASE SCENARIO)")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).",
@@ -394,7 +405,7 @@ def run_bot():
             health = sanitize_int(health)
             guild = guild.lower()
             if guild not in guilds:
-                await interaction.response.send_message("Invalid guild. Type `/boss_help` for more information.")
+                await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
                 return
             elif guilds[guild] is None:
                 guilds[guild] = boss.Guild()
@@ -405,8 +416,7 @@ def run_bot():
                 res = bool(bot.boss_dict.get(interaction.channel_id))
                 if res:
                     del bot.boss_dict[interaction.channel_id]
-                    await interaction.response.send_message("HP was set higher than boss level allows for."
-                                                            " Please try again with valid HP.")
+                    await interaction.response.send_message(f"{INVALID_HP_ERR}")
                     return
             else:
                 new_boss.set_hp(health)
@@ -419,11 +429,9 @@ def run_bot():
                 embed = get_hp_embed(interaction, new_boss)
                 await interaction.followup.send(embed=embed)
             else:
-                await interaction.response.send_message("Cannot create two bosses at once. If you want to reset "
-                                                        "the boss, please call `/delete_boss` first.")
+                await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
         else:
-            await interaction.response.send_message("Cannot create boss in this channel. Please try"
-                                                    " this command again in a valid channel.")
+            await interaction.response.send_message(f"{INVALID_CHANNEL_ERR}")
 
     @bot.tree.command(name="admin_undo", description="UNDOES THE MOST RECENT COMMAND TO FIX THE LEVEL/HP")
     @app_commands.guild_only()
@@ -431,8 +439,7 @@ def run_bot():
         await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -502,20 +509,14 @@ def run_bot():
         bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await interaction.followup.send(
-                    "Please double check that you input the exact, correct number for damage (will not accept comma"
-                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
-                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
-                    " neither of these are the case, please contact your staff to get them to reset the boss"
-                    " at it's current level and hp.")
+                await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
             if interaction.user.id in curr_boss.current_users_hit:
@@ -582,20 +583,14 @@ def run_bot():
         bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             await interaction.delete_original_response()
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             damage = sanitize_int(damage)
             if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await interaction.followup.send(
-                    "Please double check that you input the exact, correct number for damage (will not accept comma"
-                    " separated numbers or numbers ending with 'm' (123.4m). If you killed the boss"
-                    " please use the `/killed` command before calling `/hit` if you just swept this boss. If"
-                    " neither of these are the case, please contact your staff to get them to reset the boss"
-                    " at it's current level and hp.")
+                await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
             if interaction.user.id in curr_boss.current_users_hit:
@@ -653,8 +648,7 @@ def run_bot():
         bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -685,8 +679,7 @@ def run_bot():
         bot.boss_dict[interaction.channel_id].is_done = False
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -718,8 +711,7 @@ def run_bot():
         await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -743,8 +735,7 @@ def run_bot():
                     idx -= 1
 
             if error:
-                await interaction.followup.send(f"You can only undo hits on the current level, or kills "
-                                                "on the last level if no other commands have been used after that.")
+                await interaction.followup.send(f"{INVALID_UNDO_ERR}")
             else:
                 name = curr_boss.name
                 tz = pytz.timezone("Asia/Seoul")
@@ -780,8 +771,7 @@ def run_bot():
     async def hp(interaction: discord.Interaction):
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.response.send_message(
-                "A boss has not been set up in this channel. Please contact staff if you think this is a mistake.")
+            await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
@@ -842,7 +832,7 @@ def run_bot():
         # Input sanitization
         crk_guild = crk_guild.lower()
         if crk_guild not in guilds and crk_guild != "all":
-            await interaction.response.send_message("Please make sure you have input the correct guild.")
+            await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
@@ -869,7 +859,7 @@ def run_bot():
         # Input sanitization
         crk_guild = crk_guild.lower()
         if crk_guild not in guilds and crk_guild != "all":
-            await interaction.response.send_message("Please make sure you have input the correct guild.")
+            await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
