@@ -46,9 +46,11 @@ Click here to read the
 ```bash
   bot.py
   tkn.txt
+  
 ```
-Note that `tkn.txt` is *not* included in the repo -- you will need to create this yourself.
-Put the token of your bot in this file on the first line.
+Note that `tkn.txt` and `guild_id.txt` are *not* included in the repo -- you will need to create them yourself.
+- Put the Discord token of your bot in `tkn.txt` on the first line.
+- Put the guild/server ID of the server your bot will reside in, in `guild_id.txt` on the first line.
 
 In `bot.py` you will need to change:
 
