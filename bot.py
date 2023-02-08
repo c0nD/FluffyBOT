@@ -81,6 +81,28 @@ def run_bot():
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
+    async def wait_done(interaction: discord.Interaction):
+        guild = interaction.guild
+        username = guild.get_member(interaction.user.id).display_name
+        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+        try:
+            await msg.add_reaction("✅")
+            await asyncio.sleep(20 * 60)  # wait for 20 minutes
+            if not bot.boss_dict[msg.channel.id].is_done:
+                bot.boss_dict[msg.channel.id].is_done = True
+                await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
+            await msg.delete()
+            del bot.boss_dict[msg.channel.id].done_tasks[interaction.user.id]
+        except asyncio.CancelledError:
+            await msg.delete()
+    
+    def ask_done(interaction: discord.Interaction):
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
+
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
     @app_commands.describe(damage="Enter the exact amount to deal to the boss.")
@@ -420,14 +442,17 @@ def run_bot():
     # Setup event for done command
     @bot.event
     async def on_reaction_add(reaction, user):
-        guild = reaction.message.guild
-        username = guild.get_member(user.id)
-        if user == bot.user:
-            return
-        if reaction.message.author == bot.user and reaction.emoji == "✅":
-            await reaction.message.channel.send(f"**{username.display_name} is done.**")
-            bot.boss_dict[reaction.message.channel.id].is_done = True
-            await reaction.message.delete()
+        if str(reaction.message.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[reaction.message.channel.id]
+            if user == bot.user:
+                return
+            if user.id in curr_boss.done_tasks and reaction.message.author == bot.user and reaction.emoji == "✅" and reaction.message.content == "**Are you done with all of your attack(s)?**":
+                guild = reaction.message.guild
+                username = guild.get_member(user.id)
+                curr_boss.done_tasks[user.id].cancel()
+                del curr_boss.done_tasks[user.id]
+                await reaction.message.channel.send(f"**{username.display_name} is done.**")
+                bot.boss_dict[reaction.message.channel.id].is_done = True
 
     
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
@@ -493,13 +518,11 @@ def run_bot():
             await interaction.delete_original_response()
             
             # Checking if the user is done
-            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-            await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 20 minutes
-            if not bot.boss_dict[msg.channel.id].is_done:
-                bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-            await msg.delete()
+            user = interaction.user.id
+            if user in curr_boss.done_tasks:
+                curr_boss.done_tasks[user].cancel()
+                del curr_boss.done_tasks[user]
+            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
 
@@ -561,13 +584,11 @@ def run_bot():
             await interaction.delete_original_response()
             
             # Checking if the user is done
-            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-            await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 20 minutes
-            if not bot.boss_dict[msg.channel.id].is_done:
-                bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-            await msg.delete()
+            user = interaction.user.id
+            if user in curr_boss.done_tasks:
+                curr_boss.done_tasks[user].cancel()
+                del curr_boss.done_tasks[user]
+            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
@@ -592,13 +613,11 @@ def run_bot():
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
-        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-        await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 20 minutes
-        if not bot.boss_dict[msg.channel.id].is_done:
-            bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-        await msg.delete()
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # Killed command for when you don't want it to subtract a ticket
     @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
@@ -623,13 +642,11 @@ def run_bot():
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
-        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-        await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 20 minutes
-        if not bot.boss_dict[msg.channel.id].is_done:
-            bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-        await msg.delete()
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     # =========================== NON-ATTACKING COMMANDS ===========================
