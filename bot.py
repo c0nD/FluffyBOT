@@ -13,7 +13,6 @@ import sys, traceback
 import pandas as pd
 import linecache
 import jsonpickle
-import copy
 from ast import literal_eval
 from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -536,7 +535,8 @@ def run_bot():
                 await interaction.channel.send(f"{ping.mention}")
             
             if goofed:
-                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, "
+                                                "please use /undo followed by /resume_hit to correct your mistake.**")
             
             # Deleting the defer
             await interaction.delete_original_response()
@@ -640,7 +640,8 @@ def run_bot():
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.followup.send(embed=embed)
             if goofed:
-                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, "
+                                                "please use /undo followed by /bonus_kill to correct your mistake.**")
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
