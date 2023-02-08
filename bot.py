@@ -96,6 +96,14 @@ def run_bot():
                 await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
             await msg.delete()
             del bot.task_dict[msg.channel.id][interaction.user.id]
+
+            # Checking the queue
+            if bot.boss_dict[msg.channel.id].is_done:
+                if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+                    bot.boss_dict[msg.channel.id].queue.pop(0)
+
         except asyncio.CancelledError:
             await msg.delete()
 
