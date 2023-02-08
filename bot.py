@@ -498,6 +498,10 @@ def run_bot():
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
+            if curr_boss.last_kill_id == interaction.user.id:
+                goofed = True
+            else:
+                goofed = False
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
@@ -538,6 +542,9 @@ def run_bot():
             ping = call_sweeper(interaction, curr_boss)
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
+            
+            if goofed:
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
             
             # Deleting the defer
             await interaction.delete_original_response()
@@ -625,7 +632,14 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
+            if curr_boss.last_kill_id == interaction.user.id:
+                goofed = True
+            else:
+                goofed = False
+            if interaction.user.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, False, curr_boss.level)
+            else:
+                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
@@ -633,6 +647,8 @@ def run_bot():
                                                     allowed_mentions=allowed_mentions)
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.followup.send(embed=embed)
+            if goofed:
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
@@ -654,7 +670,10 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, interaction.user.id, False, True, curr_boss.level)
+            if interaction.user.id in curr_boss.current_users_hit:
+                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, False, curr_boss.level)
+            else:
+                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
