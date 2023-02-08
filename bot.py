@@ -89,21 +89,22 @@ def run_bot():
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         try:
             await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 20 minutes
+            await asyncio.sleep(15)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
             await msg.delete()
             del bot.boss_dict[msg.channel.id].done_tasks[interaction.user.id]
+            
+            # Checking the queue
+            if bot.boss_dict[msg.channel.id].is_done:
+                if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    bot.boss_dict[msg.channel.id].queue.pop(0)
+                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
         except asyncio.CancelledError:
             await msg.delete()
     
-    def ask_done(interaction: discord.Interaction):
-        user = interaction.user.id
-        if user in curr_boss.done_tasks:
-            curr_boss.done_tasks[user].cancel()
-            del curr_boss.done_tasks[user]
-        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
@@ -665,7 +666,7 @@ def run_bot():
     @app_commands.describe(param="Either 'join', 'leave', or 'position'/'pos'")
     @app_commands.guild_only()
     async def queue(interaction: discord.Interaction, param: str):
-        await interaction.response.send_message("Attempting to join the queue...")  # deferring interaction
+        await interaction.response.send_message("Attempting to queue...")  # deferring interaction
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
             await interaction.followup.send(f"{INVALID_BOSS_ERR}")
