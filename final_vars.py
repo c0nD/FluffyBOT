@@ -1,108 +1,96 @@
-# boss.py
-import attr, cattrs, json
+import linecache
 
+guild_id = int(linecache.getline('guild_id.txt', 1))
+admin_roles = []
+valid_channels = ['avatar', 'living_abyss', 'dragon']
+split_threshold = 3
+max_queue_length = 2
+guilds = {
+    "toasted": None,
+    "pearl": None,
+    "burnt": None,
+    "royal": None,
+    "spring": None,
+    "fall": None,
+    "onion": None,
 
-@attr.define
-class Boss:
-    name: str
-    level: int
-    guild: str
-    last_kill_id: int = 0
-    hp: int = 0
-    hp_list: list = []
-    hits: list = []
-    current_users_hit: list = []
-    is_done: bool = False
-    done_tasks: dict = {}
-    queue: list = []
+    "toasted_sandbox": None,
+    "pearl_sandbox": None,
+    "burnt_sandbox": None,
+    "royal_sandbox": None,
+    "spring_sandbox": None,
+    "fall_sandbox": None,
+    "onion_sandbox": None,
 
+    "dev": None,
+}
 
-    def __attrs_post_init__(self):
-        # Boss HP at each level : index = level
-        self.hits = []
-        self.hp_list = [0, 8400000, 13692000, 21246400, 31393600, 44172800, 59192000, 75549600, 91834400,
-                        102300800, 108528000, 111781600, 115136000, 118591200, 122147200, 125809600,
-                        129584000, 132176800, 134820000, 137519200, 140268800, 143074400, 145936000,
-                        148853600, 151832800, 154868000, 157964800, 160333600, 162736000, 165177600,
-                        167652800, 172720800, 177945600, 183327200, 188865600, 194572000, 200452000,
-                        206511200, 212749600, 219178400, 225803200, 232629600, 239657600, 246904000,
-                        254363200, 262052000, 269970400, 278129600, 286535200, 295198400, 304124800,
-                        313320000, 322789600, 332550400, 342602400, 352956800, 363624800, 374617600,
-                        385935200, 397600000, 409617600, 421999200, 434750400, 447893600, 461434400,
-                        475384000, 489748000, 504554400, 519803200, 535511200, 551695232, 568371968,
-                        585547200, 603243200, 621476800, 640264832, 659618432, 679554432, 700095232,
-                        721251968, 743052800, 765508800, 788642432, 812476032, 837032000, 862332800,
-                        888395200, 915247200, 942911200, 971415200, 1000776000,
-                        9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999,
-                        9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999,
-                        9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999]
+ping_roles = {
+    "avatar": 1047787785895038986,
+    "living_abyss": 1047787857357590538,
+    "dragon": 1042512104059568138
+}
 
-        self.hp = self.hp_list[self.level]
-        self.current_users_hit = []
-        self.queue = []
-        last_kill_id = 0
-        is_done = True
+sweeper_roles = {
+    "avatar": 1061881832280424529,
+    "living_abyss": 1061881839419150376,
+    "dragon": 1061881749098999808
+}
 
-        
-    def set_hp(self, hp):
-        self.hp = hp
+sweeper_requirements = {
+    "onion": {
+        "avatar": 75_000_000,
+        "living_abyss": 100_000_000,
+        "dragon": 5_000_000
+    },
+    "fall": {
+        "avatar": 70_000_000,
+        "living_abyss": 85_000_000,
+        "dragon": 5_000_000
+    },
+    "spring": {
+        "avatar": 55_000_000,
+        "living_abyss": 50_000_000,
+        "dragon": 5_000_000
+    },
+    "burnt": {
+        "avatar": -1,
+        "living_abyss": 55_000_000,
+        "dragon": 5_000_000
+    },
+    "other": {
+        "avatar": 5_000_000,
+        "living_abyss": 5_000_000,
+        "dragon": 5_000_000
+    }
+}
 
-    def take_damage(self, damage, user, used_ticket, split, boss_level):
-        self.hp -= damage
-        self.hits.append(Hit(damage, user, used_ticket, split, boss_level))
+split_exempt = ["onion", "burnt", "toasted", "royal", "pearl", "onion_sandbox", "toasted_sandbox", 
+                "pearl_sandbox", "burnt_sandbox", "royal_sandbox", "spring_sandbox", "fall_sandbox", "dev"]
 
-    def killed(self):
-        self.level += 1
-        self.hp = self.hp_list[self.level]
-        self.current_users_hit.clear()
+# ERRORS MADE TO BE CONSTANTS
+INVALID_INT_ERR = '''**ERROR: Please double check that you input a full integer value, correct number for damage
+(will not accept comma separated numbers or numbers ending with 'm' (123.4m)). 
+If you want to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact a developer.**'''
 
-    def overkill_damage(self, damage):
-        self.hp -= damage
+INSERT_HIT_ERR = '''**ERROR: Please double check that you input the exact, correct number for damage
+(will not accept comma separated numbers or numbers ending with 'm' (123.4m). 
+If you killed the boss please use the `/killed` command before calling `/hit` if you just swept this boss.
+If neither of these are the case, please contact your staff to get them to reset the boss at it's current level and hp.**'''
 
-    def undo(self, idx):
-        hit = self.hits[idx]
-        if hit.boss_level == self.level:
-            self.hp += hit.damage
-        else:
-            self.hp = hit.damage
-            self.level = hit.boss_level
-        self.hits.pop(idx)
+BOSS_SETUP_ERR = '''**ERROR: A boss has not been set up in this channel. Check /help for more information.
+Please contact staff/a developer if you think this is a mistake.**'''
 
+INVALID_GUILD_ERR = '''**ERROR: Invalid guild entered. Check /help for more information.
+Please contact staff/a developer if you think this is a mistake.**'''
 
-    # For fixing hps
-    def admin_hit(self, damage):
-        self.hp -= damage
+INVALID_BOSS_ERR = '''**ERROR: Cannot create two bosses at once, or no boss exists in this channel. 
+If you want to reset the boss, please call `/delete_boss` first. Otherwise, use `/create_boss` to make a new boss.**'''
 
-    def admin_kill(self):
-        self.level += 1
-        self.hp = self.hp_list[self.level]
-        self.current_users_hit.clear()
+INVALID_CHANNEL_ERR = "**ERROR: Cannot create boss in this channel. Please try this command again in a valid channel.**"
 
-    def admin_revive(self):
-        self.level -= 1
-        self.hp = self.hp_list[self.level]
-        self.current_users_hit.clear()
+INVALID_HP_ERR = "**ERROR: HP was set higher than boss level allows for. Please try again with valid HP.**"
 
-    def admin_undo(self):
-        hit = self.hits[-1]
-        if hit.boss_level == self.level:
-            self.hp += hit.damage
-        else:
-            self.hp = hit.damage
-            self.level = hit.boss_level
-        self.hits.pop(-1)
+INVALID_UNDO_ERR = "**ERROR: You can only undo hits on the current level, or kills on the last level if no other commands have been used after that.**"
 
-@attr.define
-class Hit:
-    damage: int
-    user_id: int
-    ticket_used: bool
-    split: bool
-    boss_level: int
-    username: str = ''
-
-
-@attr.define
-class Guild:
-    users: dict = {}
-    bosses = list = []
+INVALID_PARAM_ERR = "**ERROR: The parameter that has been entered is incorrect. Please either check the command description or /help for more information.**"
