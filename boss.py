@@ -12,6 +12,10 @@ class Boss:
     hits: list = []
     current_users_hit: list = []
     is_done: bool = False
+    done_tasks: dict = {}
+    queue: list = []
+    last_kill_id: int = 0
+
 
     def __attrs_post_init__(self):
         # Boss HP at each level : index = level
@@ -28,22 +32,27 @@ class Boss:
                         475384000, 489748000, 504554400, 519803200, 535511200, 551695232, 568371968,
                         585547200, 603243200, 621476800, 640264832, 659618432, 679554432, 700095232,
                         721251968, 743052800, 765508800, 788642432, 812476032, 837032000, 862332800,
-                        888395200, 915247200, 942911200, 9999999999999, 9999999999999,
+                        888395200, 915247200, 942911200, 971415200, 1000776000,
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999,
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999,
                         9999999999999, 9999999999999, 9999999999999, 9999999999999, 9999999999999]
 
         self.hp = self.hp_list[self.level]
         self.current_users_hit = []
+        self.queue = []
         is_done = True
 
-        
+
     def set_hp(self, hp):
         self.hp = hp
 
     def take_damage(self, damage, user, used_ticket, split, boss_level):
         self.hp -= damage
         self.hits.append(Hit(damage, user, used_ticket, split, boss_level))
+        if self.hp == 0:
+            self.last_kill_id = user
+        else:
+            self.last_kill_id = 0
 
     def killed(self):
         self.level += 1

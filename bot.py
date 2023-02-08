@@ -28,6 +28,7 @@ guild_id = final_vars.guild_id
 admin_roles = final_vars.admin_roles
 valid_channels = final_vars.valid_channels
 split_threshold = final_vars.split_threshold
+max_queue_length = final_vars.max_queue_length
 guilds = final_vars.guilds
 ping_roles = final_vars.ping_roles
 sweeper_roles = final_vars.sweeper_roles
@@ -43,6 +44,7 @@ INVALID_BOSS_ERR = final_vars.INVALID_BOSS_ERR
 INVALID_CHANNEL_ERR = final_vars.INVALID_CHANNEL_ERR
 INVALID_HP_ERR = final_vars.INVALID_HP_ERR
 INVALID_UNDO_ERR = final_vars.INVALID_UNDO_ERR
+INVALID_PARAM_ERR = final_vars.INVALID_PARAM_ERR
 
 def run_bot():
     # Boring setup
@@ -80,6 +82,29 @@ def run_bot():
             # All other Errors not returned come here. And we can just print the default TraceBack.
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
+
+    async def wait_done(interaction: discord.Interaction):
+        guild = interaction.guild
+        username = guild.get_member(interaction.user.id).display_name
+        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
+        try:
+            await msg.add_reaction("✅")
+            await asyncio.sleep(15)  # wait for 20 minutes
+            if not bot.boss_dict[msg.channel.id].is_done:
+                bot.boss_dict[msg.channel.id].is_done = True
+                await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
+            await msg.delete()
+            del bot.boss_dict[msg.channel.id].done_tasks[interaction.user.id]
+            
+            # Checking the queue
+            if bot.boss_dict[msg.channel.id].is_done:
+                if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    bot.boss_dict[msg.channel.id].queue.pop(0)
+                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+        except asyncio.CancelledError:
+            await msg.delete()
+    
 
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
@@ -420,14 +445,25 @@ def run_bot():
     # Setup event for done command
     @bot.event
     async def on_reaction_add(reaction, user):
-        guild = reaction.message.guild
-        username = guild.get_member(user.id)
-        if user == bot.user:
-            return
-        if reaction.message.author == bot.user and reaction.emoji == "✅":
-            await reaction.message.channel.send(f"**{username.display_name} is done.**")
-            bot.boss_dict[reaction.message.channel.id].is_done = True
-            await reaction.message.delete()
+        if str(reaction.message.channel.name).lower() in valid_channels:
+            curr_boss = bot.boss_dict[reaction.message.channel.id]
+            if user == bot.user:
+                return
+            if user.id in curr_boss.done_tasks and reaction.message.author == bot.user and reaction.emoji == "✅" and reaction.message.content == "**Are you done with all of your attack(s)?**":
+                guild = reaction.message.guild
+                username = guild.get_member(user.id)
+                curr_boss.done_tasks[user.id].cancel()
+                del curr_boss.done_tasks[user.id]
+                await reaction.message.channel.send(f"**{username.display_name} is done.**")
+                bot.boss_dict[reaction.message.channel.id].is_done = True
+        
+        # Checking the queue
+        if bot.boss_dict[reaction.message.channel.id].is_done:
+            if len(bot.boss_dict[reaction.message.channel.id].queue) != 0:
+                bot.boss_dict[reaction.message.channel.id].queue.pop(0)
+                await reaction.message.channel.send(f"{bot.boss_dict[reaction.message.channel.id].queue[0].mention}"
+                                        " is next up in the queue. Attacks are reserved to them.")
+
 
     
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
@@ -448,6 +484,10 @@ def run_bot():
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
+            if curr_boss.last_kill_id == interaction.user.id:
+                goofed = True
+            else:
+                goofed = False
             if interaction.user.id in curr_boss.current_users_hit:
                 curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
@@ -489,19 +529,18 @@ def run_bot():
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
             
+            if goofed:
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /resume_hit to correct your mistake.**")
+            
             # Deleting the defer
             await interaction.delete_original_response()
             
             # Checking if the user is done
-            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-            await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 20 minutes
-            if not bot.boss_dict[msg.channel.id].is_done:
-                bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-            await msg.delete()
-
-
+            user = interaction.user.id
+            if user in curr_boss.done_tasks:
+                curr_boss.done_tasks[user].cancel()
+                del curr_boss.done_tasks[user]
+            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # Hit command for when you don't want it to subtract a ticket
     @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
@@ -561,13 +600,11 @@ def run_bot():
             await interaction.delete_original_response()
             
             # Checking if the user is done
-            msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-            await msg.add_reaction("✅")
-            await asyncio.sleep(20 * 60)  # wait for 20 minutes
-            if not bot.boss_dict[msg.channel.id].is_done:
-                bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-            await msg.delete()
+            user = interaction.user.id
+            if user in curr_boss.done_tasks:
+                curr_boss.done_tasks[user].cancel()
+                del curr_boss.done_tasks[user]
+            curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
@@ -581,6 +618,10 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            if curr_boss.last_kill_id == interaction.user.id:
+                goofed = True
+            else:
+                goofed = False
             curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
@@ -589,16 +630,16 @@ def run_bot():
                                                     allowed_mentions=allowed_mentions)
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.followup.send(embed=embed)
+            if goofed:
+                await interaction.followup.send(f"**:warning: Warning: this command uses a ticket. If you did not intend to use a ticket, please use /undo followed by /bonus_kill to correct your mistake.**")
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
-        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-        await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 20 minutes
-        if not bot.boss_dict[msg.channel.id].is_done:
-            bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-        await msg.delete()
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
     # Killed command for when you don't want it to subtract a ticket
     @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
@@ -623,16 +664,67 @@ def run_bot():
         await interaction.delete_original_response()  # Deleting the defer
             
         # Checking if the user is done
-        msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
-        await msg.add_reaction("✅")
-        await asyncio.sleep(20 * 60)  # wait for 20 minutes
-        if not bot.boss_dict[msg.channel.id].is_done:
-            bot.boss_dict[msg.channel.id].is_done = True
-            await msg.channel.send(f"**20 minutes has passed! Defaulting to done.**")
-        await msg.delete()
+        user = interaction.user.id
+        if user in curr_boss.done_tasks:
+            curr_boss.done_tasks[user].cancel()
+            del curr_boss.done_tasks[user]
+        curr_boss.done_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     # =========================== NON-ATTACKING COMMANDS ===========================
+    
+    # queue as []. when adding use .append(), when removing, .pop(0)
+    
+    @bot.tree.command(name="queue", description="Use /queue join to join the queue, or /queue leave to leave the queue.")
+    @app_commands.describe(param="Either 'join', 'leave', or 'position'/'pos'")
+    @app_commands.guild_only()
+    async def queue(interaction: discord.Interaction, param: str):
+        await interaction.response.send_message("Attempting to queue...")  # deferring interaction
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
+            await interaction.delete_original_response()
+            return
+        bot.boss_dict[interaction.channel_id].queue
+        param = param.lower()
+        name = interaction.user.display_name
+        if param == "join":
+            # Checking if the queue is full
+            if len(bot.boss_dict[interaction.channel_id].queue) > max_queue_length:
+                await interaction.followup.send("**The queue is current full. Try again later.**")
+                return
+            if interaction.user in bot.boss_dict[interaction.channel_id].queue:
+                await interaction.followup.send("You're already in the queue.")
+            bot.boss_dict[interaction.channel_id].queue.append(interaction.user)
+            await interaction.followup.send(f"**{name}** has joined the queue. "
+                                            f"Position: **{bot.boss_dict[interaction.channel_id].queue.index(interaction.user)+1}/{max_queue_length+1}**")
+                 
+        elif param == "leave":
+            if len(bot.boss_dict[interaction.channel_id].queue) == 0:
+                await interaction.followup.send("**Cannot leave an empty queue.**")
+                await interaction.delete_original_response()
+                return
+            bot.boss_dict[interaction.channel_id].queue.remove(interaction.user)
+            if len(bot.boss_dict[interaction.channel_id].queue) != 0:
+                next_queued = bot.boss_dict[interaction.channel_id].queue[0]
+                await interaction.followup.send(f"**{name}** has removed themselves from the queue\n"
+                                            f"Next in queue: **{next_queued.display_name}** "
+                                            f"**{bot.boss_dict[interaction.channel_id].queue.index(next_queued)+1}/{max_queue_length+1}**")
+            else:
+                await interaction.followup.send(f"**{name}** has removed themselves from the queue\n"
+                                            f"The queue is now **empty**")
+            
+        elif param == "position" or param == "pos":
+            try:
+                await interaction.followup.send(f"**{name}'s** position: "
+                                                f"**{bot.boss_dict[interaction.channel_id].queue.index(interaction.user)+1}/{max_queue_length+1}**")
+                await interaction.delete_original_response()
+            except ValueError:
+                await interaction.followup.send(f"**{name}** is not in the queue. Cannot check your position.")
+                await interaction.delete_original_response()
+        
+        else:
+            await interaction.followup.send(f"{INVALID_PARAM_ERR}")    
     
     @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
     @app_commands.guild_only()
@@ -745,7 +837,7 @@ def run_bot():
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
-        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp", "current_users_hit", "is_done"])
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp", "current_users_hit", "is_done", "queue"])
         if crk_guild != "all":
             df_final = df_final[df_final["guild"] == crk_guild]
         # df_final = df_final.explode("hp_list").reset_index(drop=True)
@@ -817,8 +909,8 @@ def run_bot():
         bot.boss_dict = jsonpickle.decode(json_string)
         print(bot.boss_dict)
         await interaction.followup.send("Data loaded successfully.")
-
-
+        
+        
     # Setting up scheduler to save data
     scheduler = BackgroundScheduler()
     scheduler.add_job(__write_json, 'interval', seconds=600)
@@ -838,7 +930,7 @@ def sanitize_int(num):
         return num
     except Exception as e:
         return -1
-
+    
 
 def get_hp_embed(interaction: discord.Interaction, curr_boss):
     name = curr_boss.name
