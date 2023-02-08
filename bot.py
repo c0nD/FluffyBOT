@@ -465,9 +465,9 @@ def run_bot():
         # Checking the queue
         if bot.boss_dict[reaction.message.channel.id].is_done:
             if len(bot.boss_dict[reaction.message.channel.id].queue) != 0:
-                bot.boss_dict[reaction.message.channel.id].queue.pop(0)
                 await reaction.message.channel.send(f"{bot.boss_dict[reaction.message.channel.id].queue[0].mention}"
                                         " is next up in the queue. Attacks are reserved to them.")
+                bot.boss_dict[reaction.message.channel.id].queue.pop(0)
 
 
     
