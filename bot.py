@@ -372,6 +372,7 @@ def run_bot():
             res = bool(bot.boss_dict.get(interaction.channel_id))
             if not res:
                 bot.boss_dict[interaction.channel_id] = new_boss
+                bot.task_dict[interaction.channel_id] = {}
                 await interaction.response.send_message(f"**Inserted `lv.{new_boss.level}"
                                                         f" {interaction.channel.name.upper()}` Boss**.")
                 embed = get_hp_embed(interaction, new_boss)
