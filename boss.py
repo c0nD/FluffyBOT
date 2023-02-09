@@ -13,7 +13,6 @@ class Boss:
     current_users_hit: list = []
     is_done: bool = False
     queue: list = []
-    last_kill_id: int = 0
 
 
     def __attrs_post_init__(self):
@@ -48,10 +47,6 @@ class Boss:
     def take_damage(self, damage, user, used_ticket, split, boss_level):
         self.hp -= damage
         self.hits.append(Hit(damage, user, used_ticket, split, boss_level))
-        if self.hp == 0:
-            self.last_kill_id = user
-        else:
-            self.last_kill_id = 0
 
     def killed(self):
         self.level += 1
