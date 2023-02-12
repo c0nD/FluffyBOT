@@ -71,7 +71,7 @@ split_exempt = ["onion", "spring", "fall", "burnt", "toasted", "royal", "pearl",
 # ERRORS MADE TO BE CONSTANTS
 INVALID_INT_ERR = '''**ERROR: Please double check that you input a full integer value, correct number for damage
 (will not accept comma separated numbers or numbers ending with 'm' (123.4m)). 
-If you want to kill the boss, please use `/admin_kill` instead. If there is some other error: please contact a developer.**'''
+If you want to kill the boss, please use `/kill` instead. If there is some other error: please contact a developer.**'''
 
 INSERT_HIT_ERR = '''**ERROR: Please double check that you input the exact, correct number for damage
 (will not accept comma separated numbers or numbers ending with 'm' (123.4m). 
