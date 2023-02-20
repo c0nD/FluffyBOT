@@ -54,7 +54,6 @@ Note that `tkn.txt` and `guild_id.txt` are *not* included in the repo -- you wil
 
 In `bot.py` you will need to change:
 
-- `guild_ids` -> Guilds/Servers that can use the bot
 - `valid_channels` (optional) -> Names of channels bosses can be created in
 - `guilds` -> Change to any sister guilds (not servers) that can use the bot
 - `ping_roles` -> IDs of roles to be pinged when bosses are killed
