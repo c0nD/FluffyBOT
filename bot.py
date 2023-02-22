@@ -750,6 +750,11 @@ def run_bot():
         
         else:
             await interaction.followup.send(f"{INVALID_PARAM_ERR}")   
+        
+        try:
+            await interaction.delete_original_response()
+        except:
+            pass
     
     @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
     @app_commands.guild_only()
