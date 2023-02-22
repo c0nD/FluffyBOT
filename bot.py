@@ -226,17 +226,15 @@ def run_bot():
             await interaction.followup.send(embed=embed)
             
     @bot.tree.command(name="insert_hit", description="Inserts a hit for another user. (INSERTING A WRONG USER_ID WILL BREAK THE BOT)")
-    @app_commands.describe(user_id="Enter the user's discord ID (dev mode) that you'd like to insert.")
+    @app_commands.describe(user="Enter the user's @ that you'd like to insert.")
     @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
     @app_commands.describe(ticket_used="Enter 'true' or 'false' whether or not a ticket should be used.")
     @app_commands.guild_only()
-    async def insert_hit(interaction: discord.Interaction, user_id: str, damage: str, ticket_used: str):
+    async def insert_hit(interaction: discord.Interaction, user: discord.Member, damage: str, ticket_used: str):
         
         damage = sanitize_int(damage)
-        user_id = int(user_id)
 
         server_guild = interaction.guild
-        user = server_guild.get_member(user_id)
         if user == None:
             return await interaction.response.send_message("**Member is not in server! Please input the correct user id.**")
 
@@ -265,9 +263,9 @@ def run_bot():
                 return
             
             if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, user_id, ticket_used, False, curr_boss.level)
+                curr_boss.take_damage(damage, user.id, ticket_used, False, curr_boss.level)
             else:
-                curr_boss.take_damage(damage, user_id, ticket_used, True, curr_boss.level)
+                curr_boss.take_damage(damage, user.id, ticket_used, True, curr_boss.level)
 
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
@@ -300,13 +298,11 @@ def run_bot():
             await interaction.delete_original_response()
             
     @bot.tree.command(name="insert_kill", description="Inserts a kill for another user. (INSERTING A WRONG USER_ID WILL BREAK THE BOT)")
-    @app_commands.describe(user_id="Enter the user's discord ID (dev mode) that you'd like to insert.")
+    @app_commands.describe(user="Enter the user's discord @ that you'd like to insert.")
     @app_commands.describe(ticket_used="Enter 'true' or 'false' whether or not a ticket should be used.")
     @app_commands.describe(split="Enter 'true' or 'false' whether or not the hit was split.")
     @app_commands.guild_only()
-    async def insert_kill(interaction: discord.Interaction, user_id: str, ticket_used: str, split: str):
-        # Sanitization of input
-        user_id = int(user_id)
+    async def insert_kill(interaction: discord.Interaction, user: discord.Member, ticket_used: str, split: str):
         # cause people are stupid
         if ticket_used == "yes": ticket_used = "true"
         elif ticket_used == "no": ticket_used = "false"
@@ -325,7 +321,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, user_id, ticket_used, split, curr_boss.level)
+            curr_boss.take_damage(curr_boss.hp, user.id, ticket_used, split, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
