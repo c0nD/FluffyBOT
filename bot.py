@@ -213,9 +213,13 @@ def run_bot():
     async def insert_hit(interaction: discord.Interaction, user: discord.Member, damage: str, ticket_used: str):
         
         damage = sanitize_int(damage)
+        pass_user_id = int(user.id)
+        
+        server_guild = interaction.guild
+        _user = server_guild.get_member(pass_user_id)
 
         server_guild = interaction.guild
-        if user == None:
+        if _user == None:
             return await interaction.response.send_message("**Member is not in server! Please input the correct user id.**")
 
         # cause people are stupid
@@ -237,9 +241,9 @@ def run_bot():
                 return
             
             if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, user.id, ticket_used, False, curr_boss.level)
+                curr_boss.take_damage(damage, pass_user_id, ticket_used, False, curr_boss.level)
             else:
-                curr_boss.take_damage(damage, user.id, ticket_used, True, curr_boss.level)
+                curr_boss.take_damage(damage, pass_user_id, ticket_used, True, curr_boss.level)
 
             name = curr_boss.name
             tz = pytz.timezone("Asia/Seoul")
@@ -286,6 +290,8 @@ def run_bot():
         elif split == "no": split = "false"
         split = bool(split.lower().capitalize())
         
+        pass_user_id = int(user.id)
+        
         # Actually hitting the boss
         await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
@@ -295,7 +301,7 @@ def run_bot():
             return
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_boss.take_damage(curr_boss.hp, user.id, ticket_used, split, curr_boss.level)
+            curr_boss.take_damage(curr_boss.hp, pass_user_id, ticket_used, split, curr_boss.level)
             curr_boss.killed()
             allowed_mentions = discord.AllowedMentions(everyone=True)
             ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
