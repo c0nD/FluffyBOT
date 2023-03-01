@@ -468,7 +468,12 @@ def run_bot():
             curr_tasks = bot.task_dict[reaction.message.channel.id]
             if user == bot.user:
                 return
-            if user.id in curr_tasks and reaction.message.author == bot.user and reaction.emoji == "✅" and reaction.message.content == "**Are you done with all of your attack(s)?**":
+            
+            if (user.id in curr_tasks
+                and reaction.message.author == bot.user
+                and reaction.emoji == "✅"
+                and reaction.message.content == "**Are you done with all of your attack(s)?**"):
+                
                 guild = reaction.message.guild
                 username = guild.get_member(user.id)
                 curr_tasks[user.id].cancel()
@@ -476,12 +481,12 @@ def run_bot():
                 await reaction.message.channel.send(f"**{username.display_name} is done.**")
                 bot.boss_dict[reaction.message.channel.id].is_done = True
         
-        # Checking the queue
-        if bot.boss_dict[reaction.message.channel.id].is_done:
-            if len(bot.boss_dict[reaction.message.channel.id].queue) != 0:
-                await reaction.message.channel.send(f"{bot.boss_dict[reaction.message.channel.id].queue[0].mention}"
-                                        " is next up in the queue. Attacks are reserved to them.")
-                bot.boss_dict[reaction.message.channel.id].queue.pop(0)
+            # Checking the queue
+            if bot.boss_dict[reaction.message.channel.id].is_done and reaction.emoji == "✅":
+                if len(bot.boss_dict[reaction.message.channel.id].queue) != 0:
+                    await reaction.message.channel.send(f"{bot.boss_dict[reaction.message.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+                    bot.boss_dict[reaction.message.channel.id].queue.pop(0)
 
 
     
