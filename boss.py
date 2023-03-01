@@ -107,4 +107,4 @@ class Hit:
 @attr.define
 class Guild:
     users: dict = {}
-    bosses = list = []
+    bosses: list = []
