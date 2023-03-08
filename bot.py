@@ -86,7 +86,8 @@ def run_bot():
 
     async def wait_done(interaction: discord.Interaction):
         guild = interaction.guild
-        username = guild.get_member(interaction.user.id).display_name
+        uid = interaction.user.id
+        username = guild.get_member(uid).display_name
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         try:
             await msg.add_reaction("✅")
@@ -95,17 +96,56 @@ def run_bot():
                 bot.boss_dict[msg.channel.id].is_done = True
                 await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
             await msg.delete()
-            del bot.task_dict[msg.channel.id][interaction.user.id]
 
             # Checking the queue
-            if bot.boss_dict[msg.channel.id].is_done:
+            if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
                 if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    next_uid = bot.boss_dict[msg.channel.id].queue[0].id
                     await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
                                             " is next up in the queue. Attacks are reserved to them.")
+                    if "queue" in bot.task_dict[msg.channel.id]:
+                        bot.task_dict[msg.channel.id]["queue"].cancel()
+                        del bot.task_dict[msg.channel.id]["queue"]
+                    bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
+                    bot.boss_dict[msg.channel.id].queue_front = next_uid
                     bot.boss_dict[msg.channel.id].queue.pop(0)
+                else:
+                    bot.boss_dict[msg.channel.id].queue_front = None
+            
+            del bot.task_dict[msg.channel.id][msg.user.id]
 
         except asyncio.CancelledError:
             await msg.delete()
+    
+    async def wait_queue(msg: discord.Message, uid: int):
+        guild = msg.guild
+        username = guild.get_member(uid).display_name
+        try:
+            await asyncio.sleep(20 * 60)  # wait for 20 minutes
+            await msg.channel.send(f"**20 minutes has passed! {username}'s turn in the queue has been skipped.**")
+
+            # Checking the queue
+            if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
+                if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    next_uid = bot.boss_dict[msg.channel.id].queue[0].id
+                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+                    if "queue" in bot.task_dict[msg.channel.id]:
+                        bot.task_dict[msg.channel.id]["queue"].cancel()
+                        del bot.task_dict[msg.channel.id]["queue"]
+                    bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
+                    bot.boss_dict[msg.channel.id].queue_front = next_uid
+                    bot.boss_dict[msg.channel.id].queue.pop(0)
+                else:
+                    if "queue" in bot.task_dict[msg.channel.id]:
+                        bot.task_dict[msg.channel.id]["queue"].cancel()
+                        del bot.task_dict[msg.channel.id]["queue"]
+                    bot.boss_dict[msg.channel.id].queue_front = None
+            else:
+                del bot.task_dict[msg.channel.id]["queue"]
+
+        except asyncio.CancelledError:
+            pass
 
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="HIT THE BOSS TO FIX THE HP -- WILL NOT REGISTER AS A HIT.")
@@ -452,8 +492,11 @@ def run_bot():
         if len(bot.boss_dict[interaction.channel_id].queue) != 0:
             removed_user = bot.boss_dict[interaction.channel_id].queue.pop(0)
             await interaction.channel.send(f"**{removed_user.mention}** has been removed from the queue.")
-            await interaction.channel.send(f"{bot.boss_dict[interaction.channel_id].queue[0].mention}"
-                                        " is next up in the queue. Attacks are reserved to them.")
+            if len(bot.boss_dict[interaction.channel_id].queue) != 0:
+                await interaction.channel.send(f"{bot.boss_dict[interaction.channel_id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+            else:
+                await interaction.channel.send("The last person was removed from the queue. Anyone can hit now.")
         else:
             await interaction.followup.send("Queue is empty. Cannot remove anyone.")
         await interaction.delete_original_response()
@@ -482,11 +525,21 @@ def run_bot():
                 bot.boss_dict[reaction.message.channel.id].is_done = True
         
             # Checking the queue
-            if bot.boss_dict[reaction.message.channel.id].is_done and reaction.emoji == "✅":
-                if len(bot.boss_dict[reaction.message.channel.id].queue) != 0:
-                    await reaction.message.channel.send(f"{bot.boss_dict[reaction.message.channel.id].queue[0].mention}"
+            uid = user.id
+            msg = reaction.message
+            if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
+                if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                    next_uid = bot.boss_dict[msg.channel.id].queue[0].id
+                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
                                             " is next up in the queue. Attacks are reserved to them.")
-                    bot.boss_dict[reaction.message.channel.id].queue.pop(0)
+                    if "queue" in bot.task_dict[msg.channel.id]:
+                        bot.task_dict[msg.channel.id]["queue"].cancel()
+                        del bot.task_dict[msg.channel.id]["queue"]
+                    bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
+                    bot.boss_dict[msg.channel.id].queue_front = next_uid
+                    bot.boss_dict[msg.channel.id].queue.pop(0)
+                else:
+                    bot.boss_dict[msg.channel.id].queue_front = None
 
 
     
@@ -697,7 +750,7 @@ def run_bot():
     # queue as []. when adding use .append(), when removing, .pop(0)
     
     @bot.tree.command(name="queue", description="An optional queue system for queueing attacks.")
-    @app_commands.describe(param="Either 'join', 'leave', 'list', or 'position'/'pos'")
+    @app_commands.describe(param="Either 'join', 'leave', 'list', 'hold', 'pass', or 'position'/'pos'")
     @app_commands.guild_only()
     async def queue(interaction: discord.Interaction, param: str):
         await interaction.response.send_message("Attempting to queue...")  # deferring interaction
@@ -757,7 +810,39 @@ def run_bot():
                 await interaction.followup.send("The queue is currently **empty**")
                 await interaction.delete_original_response()
                 return
+        elif param == "hold":
+            uid = interaction.user.id
+            if bot.boss_dict[interaction.channel_id].queue_front == uid:
+                if "queue" in bot.task_dict[interaction.channel.id]:
+                    bot.task_dict[interaction.channel.id]["queue"].cancel()
+                    del bot.task_dict[interaction.channel.id]["queue"]
+                    await interaction.channel.send("Your turn in the queue will be held until you hit or you pass.")
+                else:
+                    await interaction.channel.send("Your turn in the queue is already being held.")
+            else:
+                await interaction.channel.send(f"You cannot hold your turn in the queue while it's not your turn.")
             
+        elif param == "pass":
+            uid = interaction.user.id
+            if bot.boss_dict[interaction.channel_id].queue_front == uid:
+                if len(bot.boss_dict[interaction.channel.id].queue) != 0:
+                    next_uid = bot.boss_dict[interaction.channel.id].queue[0].id
+                    await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].display_name} passed their turn in the queue.")
+                    await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].mention}"
+                                            " is next up in the queue. Attacks are reserved to them.")
+                    if "queue" in bot.task_dict[interaction.channel.id]:
+                        bot.task_dict[interaction.channel.id]["queue"].cancel()
+                        del bot.task_dict[interaction.channel.id]["queue"]
+                    bot.task_dict[interaction.channel.id]["queue"] = asyncio.create_task(wait_queue(interaction, next_uid))
+                    bot.boss_dict[interaction.channel.id].queue_front = next_uid
+                    bot.boss_dict[interaction.channel.id].queue.pop(0)
+                else:
+                    await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].display_name} passed their turn in the queue.")
+                    await interaction.channel.send("The last person in the queue passed their turn. Anyone can hit now.")
+                    bot.boss_dict[interaction.channel.id].queue_front = None
+            else:
+                await interaction.channel.send(f"You cannot pass your turn in the queue while it's not your turn.")
+                
         
         else:
             await interaction.followup.send(f"{INVALID_PARAM_ERR}")   
