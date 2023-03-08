@@ -13,6 +13,7 @@ class Boss:
     current_users_hit: list = []
     is_done: bool = False
     queue: list = []
+    queue_front: int = None
 
 
     def __attrs_post_init__(self):
