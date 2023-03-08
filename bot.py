@@ -986,6 +986,7 @@ def run_bot():
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
+            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key]["hits"]:
                 try:
                     user = guild.get_member(i["user_id"])
@@ -1013,6 +1014,7 @@ def run_bot():
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
         for key in bot.boss_dict:
+            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key].hits:
                 try:
                     user = guild.get_member(i.user_id)
