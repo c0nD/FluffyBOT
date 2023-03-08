@@ -985,7 +985,10 @@ def run_bot():
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
+        queues = {}
         for key in bot.boss_dict:
+            queues[key] = bot.boss_dict[key].queue.copy()
+            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key]["hits"]:
                 try:
                     user = guild.get_member(i["user_id"])
@@ -998,6 +1001,8 @@ def run_bot():
                 if __convert_csv(key) != 0:
                     await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
+        for key in queues:
+            bot.boss_dict[key].queue = queues[key].copy()
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
 
@@ -1012,7 +1017,10 @@ def run_bot():
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
+        queues = {}
         for key in bot.boss_dict:
+            queues[key] = bot.boss_dict[key].queue.copy()
+            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key].hits:
                 try:
                     user = guild.get_member(i.user_id)
@@ -1025,6 +1033,8 @@ def run_bot():
                 if __convert_csv(key) != 0:
                     await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
+        for key in queues:
+            bot.boss_dict[key].queue = queues[key].copy()
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
