@@ -110,8 +110,9 @@ def run_bot():
                     bot.boss_dict[msg.channel.id].queue_front = next_uid
                     bot.boss_dict[msg.channel.id].queue.pop(0)
                 else:
-                    del bot.task_dict[msg.channel.id]["queue"]
-                    bot.boss_dict[msg.channel.id].queue_front = None
+                    if bot.boss_dict[msg.channel.id].queue_front is not None:
+                        del bot.task_dict[msg.channel.id]["queue"]
+                        bot.boss_dict[msg.channel.id].queue_front = None
             
             del bot.task_dict[msg.channel.id][msg.user.id]
 
@@ -141,6 +142,7 @@ def run_bot():
                     bot.boss_dict[msg.channel.id].queue_front = None
                     if "queue" in bot.task_dict[msg.channel.id]:
                         bot.task_dict[msg.channel.id]["queue"].cancel()
+                        del bot.task_dict[msg.channel.id]["queue"]
             else:
                 del bot.task_dict[msg.channel.id]["queue"]
 
@@ -539,8 +541,9 @@ def run_bot():
                         bot.boss_dict[msg.channel.id].queue_front = next_uid
                         bot.boss_dict[msg.channel.id].queue.pop(0)
                     else:
-                        del bot.task_dict[msg.channel.id]["queue"]
-                        bot.boss_dict[msg.channel.id].queue_front = None
+                        if bot.boss_dict[msg.channel.id].queue_front is not None:
+                            del bot.task_dict[msg.channel.id]["queue"]
+                            bot.boss_dict[msg.channel.id].queue_front = None
 
 
     
@@ -943,6 +946,7 @@ def run_bot():
         for key in bot.boss_dict:
             queues[key] = bot.boss_dict[key].queue.copy()
             bot.boss_dict[key].queue.clear()
+        print(bot.boss_dict)
         json_object = json.dumps(cattrs.unstructure(bot.boss_dict), indent=4)
         for key in queues:
             bot.boss_dict[key].queue = queues[key].copy()
