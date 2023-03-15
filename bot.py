@@ -110,6 +110,7 @@ def run_bot():
                     bot.boss_dict[msg.channel.id].queue_front = next_uid
                     bot.boss_dict[msg.channel.id].queue.pop(0)
                 else:
+                    del bot.task_dict[msg.channel.id]["queue"]
                     bot.boss_dict[msg.channel.id].queue_front = None
             
             del bot.task_dict[msg.channel.id][msg.user.id]
@@ -137,10 +138,9 @@ def run_bot():
                     bot.boss_dict[msg.channel.id].queue_front = next_uid
                     bot.boss_dict[msg.channel.id].queue.pop(0)
                 else:
+                    bot.boss_dict[msg.channel.id].queue_front = None
                     if "queue" in bot.task_dict[msg.channel.id]:
                         bot.task_dict[msg.channel.id]["queue"].cancel()
-                        del bot.task_dict[msg.channel.id]["queue"]
-                    bot.boss_dict[msg.channel.id].queue_front = None
             else:
                 del bot.task_dict[msg.channel.id]["queue"]
 
@@ -524,22 +524,23 @@ def run_bot():
                 await reaction.message.channel.send(f"**{username.display_name} is done.**")
                 bot.boss_dict[reaction.message.channel.id].is_done = True
         
-            # Checking the queue
-            uid = user.id
-            msg = reaction.message
-            if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
-                if len(bot.boss_dict[msg.channel.id].queue) != 0:
-                    next_uid = bot.boss_dict[msg.channel.id].queue[0].id
-                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
-                                            " is next up in the queue. Attacks are reserved to them.")
-                    if "queue" in bot.task_dict[msg.channel.id]:
-                        bot.task_dict[msg.channel.id]["queue"].cancel()
+                # Checking the queue
+                uid = user.id
+                msg = reaction.message
+                if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
+                    if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                        next_uid = bot.boss_dict[msg.channel.id].queue[0].id
+                        await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                                " is next up in the queue. Attacks are reserved to them.")
+                        if "queue" in bot.task_dict[msg.channel.id]:
+                            bot.task_dict[msg.channel.id]["queue"].cancel()
+                            del bot.task_dict[msg.channel.id]["queue"]
+                        bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
+                        bot.boss_dict[msg.channel.id].queue_front = next_uid
+                        bot.boss_dict[msg.channel.id].queue.pop(0)
+                    else:
                         del bot.task_dict[msg.channel.id]["queue"]
-                    bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
-                    bot.boss_dict[msg.channel.id].queue_front = next_uid
-                    bot.boss_dict[msg.channel.id].queue.pop(0)
-                else:
-                    bot.boss_dict[msg.channel.id].queue_front = None
+                        bot.boss_dict[msg.channel.id].queue_front = None
 
 
     
@@ -827,7 +828,7 @@ def run_bot():
             if bot.boss_dict[interaction.channel_id].queue_front == uid:
                 if len(bot.boss_dict[interaction.channel.id].queue) != 0:
                     next_uid = bot.boss_dict[interaction.channel.id].queue[0].id
-                    await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].display_name} passed their turn in the queue.")
+                    await interaction.channel.send(f"**{interaction.guild.get_member(bot.boss_dict[interaction.channel.id].queue_front).display_name}** passed their turn in the queue.")
                     await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].mention}"
                                             " is next up in the queue. Attacks are reserved to them.")
                     if "queue" in bot.task_dict[interaction.channel.id]:
@@ -837,7 +838,7 @@ def run_bot():
                     bot.boss_dict[interaction.channel.id].queue_front = next_uid
                     bot.boss_dict[interaction.channel.id].queue.pop(0)
                 else:
-                    await interaction.channel.send(f"{bot.boss_dict[interaction.channel.id].queue[0].display_name} passed their turn in the queue.")
+                    await interaction.channel.send(f"**{interaction.guild.get_member(bot.boss_dict[interaction.channel.id].queue_front).display_name}** passed their turn in the queue.")
                     await interaction.channel.send("The last person in the queue passed their turn. Anyone can hit now.")
                     bot.boss_dict[interaction.channel.id].queue_front = None
             else:
@@ -938,7 +939,13 @@ def run_bot():
     # ------------------------ Reading / Writing to json ------------------------
     def __write_json():
         # Task isn't serializable so we remove them before saving
+        queues = {}
+        for key in bot.boss_dict:
+            queues[key] = bot.boss_dict[key].queue.copy()
+            bot.boss_dict[key].queue.clear()
         json_object = json.dumps(cattrs.unstructure(bot.boss_dict), indent=4)
+        for key in queues:
+            bot.boss_dict[key].queue = queues[key].copy()
         with open("data.json", "w") as outfile:
             outfile.write(json_object)
         with open("data.txt", "w") as outfile:
@@ -985,10 +992,7 @@ def run_bot():
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
-        queues = {}
         for key in bot.boss_dict:
-            queues[key] = bot.boss_dict[key].queue.copy()
-            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key]["hits"]:
                 try:
                     user = guild.get_member(i["user_id"])
@@ -1001,8 +1005,6 @@ def run_bot():
                 if __convert_csv(key) != 0:
                     await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
-        for key in queues:
-            bot.boss_dict[key].queue = queues[key].copy()
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
 
@@ -1017,10 +1019,7 @@ def run_bot():
             return 
         await interaction.response.send_message("Converting data to csv file...")
         guild = interaction.guild
-        queues = {}
         for key in bot.boss_dict:
-            queues[key] = bot.boss_dict[key].queue.copy()
-            bot.boss_dict[key].queue.clear()
             for i in bot.boss_dict[key].hits:
                 try:
                     user = guild.get_member(i.user_id)
@@ -1033,8 +1032,6 @@ def run_bot():
                 if __convert_csv(key) != 0:
                     await interaction.followup.send(file=discord.File(f'data_{key}.csv'))
         __convert_csv(crk_guild)
-        for key in queues:
-            bot.boss_dict[key].queue = queues[key].copy()
         await interaction.followup.send(file=discord.File(f'data_{crk_guild}.csv'))
 
     @bot.tree.command(name="load_json", description="Loads the current data.json into the boss_dict (USED TO RESTORE"
