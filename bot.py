@@ -139,10 +139,10 @@ def run_bot():
                     bot.boss_dict[msg.channel.id].queue_front = next_uid
                     bot.boss_dict[msg.channel.id].queue.pop(0)
                 else:
-                    bot.boss_dict[msg.channel.id].queue_front = None
                     if "queue" in bot.task_dict[msg.channel.id]:
                         bot.task_dict[msg.channel.id]["queue"].cancel()
                         del bot.task_dict[msg.channel.id]["queue"]
+                bot.boss_dict[msg.channel.id].queue_front = None
             else:
                 del bot.task_dict[msg.channel.id]["queue"]
 
