@@ -127,24 +127,21 @@ def run_bot():
             await msg.channel.send(f"**20 minutes has passed! {username}'s turn in the queue has been skipped.**")
 
             # Checking the queue
-            if bot.boss_dict[msg.channel.id].is_done and (bot.boss_dict[msg.channel.id].queue_front == uid or bot.boss_dict[msg.channel.id].queue_front is None):
-                if len(bot.boss_dict[msg.channel.id].queue) != 0:
-                    next_uid = bot.boss_dict[msg.channel.id].queue[0].id
-                    await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
-                                            " is next up in the queue. Attacks are reserved to them.")
-                    if "queue" in bot.task_dict[msg.channel.id]:
-                        bot.task_dict[msg.channel.id]["queue"].cancel()
-                        del bot.task_dict[msg.channel.id]["queue"]
-                    bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
-                    bot.boss_dict[msg.channel.id].queue_front = next_uid
-                    bot.boss_dict[msg.channel.id].queue.pop(0)
-                else:
-                    if "queue" in bot.task_dict[msg.channel.id]:
-                        bot.task_dict[msg.channel.id]["queue"].cancel()
-                        del bot.task_dict[msg.channel.id]["queue"]
-                bot.boss_dict[msg.channel.id].queue_front = None
+            if len(bot.boss_dict[msg.channel.id].queue) != 0:
+                next_uid = bot.boss_dict[msg.channel.id].queue[0].id
+                await msg.channel.send(f"{bot.boss_dict[msg.channel.id].queue[0].mention}"
+                                        " is next up in the queue. Attacks are reserved to them.")
+                if "queue" in bot.task_dict[msg.channel.id]:
+                    bot.task_dict[msg.channel.id]["queue"].cancel()
+                    del bot.task_dict[msg.channel.id]["queue"]
+                bot.task_dict[msg.channel.id]["queue"] = asyncio.create_task(wait_queue(msg, next_uid))
+                bot.boss_dict[msg.channel.id].queue_front = next_uid
+                bot.boss_dict[msg.channel.id].queue.pop(0)
             else:
-                del bot.task_dict[msg.channel.id]["queue"]
+                bot.boss_dict[msg.channel.id].queue_front = None
+                if "queue" in bot.task_dict[msg.channel.id]:
+                    bot.task_dict[msg.channel.id]["queue"].cancel()
+                    del bot.task_dict[msg.channel.id]["queue"]
 
         except asyncio.CancelledError:
             pass
