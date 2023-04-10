@@ -88,6 +88,5 @@ this project tested me in every way.
 
  - [discord.py Discord Server](discord.gg/dpy)
  - [Alex Zades](https://github.com/AlexZades) -- helped with cattrs
- - [OnionCult Discord!](https://discord.com/invite/onioncult) -- there wouldn't be a bot without them to use it!
  - [VanLyden/Lama](https://sites.google.com/view/lama-alnatour/about) -- all the art for the bot was kindly done by her!
  - Juzu -- the visual documentation/guide was generously made by her!
