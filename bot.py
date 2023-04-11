@@ -932,7 +932,7 @@ def run_bot():
         embed = discord.Embed(title="Documentation",
                               description="Please click on the link above to view the documentation for all"
                                           " possible commands.",
-                              url="https://onioncult.com/documentation/standalone.html",
+                              url="https://fluffybot.xyz",
                               color=0x6c25be)
         await interaction.response.send_message(embed=embed)
 
