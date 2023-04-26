@@ -33,6 +33,7 @@ guilds = final_vars.guilds
 ping_roles = final_vars.ping_roles
 sweeper_roles = final_vars.sweeper_roles
 sweeper_requirements = final_vars.sweeper_requirements
+damage_intervals = final_vars.damage_intervals
 split_exempt = final_vars.split_exempt
 
 # ERRORS MADE TO BE CONSTANTS
@@ -574,6 +575,10 @@ def run_bot():
                 curr_boss.current_users_hit.append(interaction.user.id)
             count_hits = curr_boss.current_users_hit.count(interaction.user.id)
             curr_boss.hit_history.append(hit_cnt)
+            
+            # Calculate possible splits
+            splits = []
+            
 
             # Reminding users to split hits at a certain threshold
             if count_hits >= split_threshold and curr_boss.guild not in split_exempt:
@@ -599,6 +604,11 @@ def run_bot():
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
+            splits = get_splits(interaction, curr_boss)
+            if splits:
+                embed.add_field(name="> __Splits__",
+                        value="\n".join(splits),
+                        inline=True)
             embed.set_author(name=interaction.user.display_name,
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
@@ -768,6 +778,11 @@ def run_bot():
                 embed.add_field(name="> __New Health__",
                                 value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                                 inline=True)
+                splits = get_splits(interaction, curr_boss)
+                if splits:
+                    embed.add_field(name="> __Splits__",
+                            value="\n".join(splits),
+                            inline=True)
                 embed.set_author(name=interaction.user.display_name,
                                 icon_url=interaction.user.display_avatar.url)
                 embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
@@ -923,13 +938,13 @@ def sanitize_int(num):
         mult = 1
         if num[-1].lower() in 'bmk0123456789.':
             if num[-1].lower() == 'b':
-                mult = 1e9
+                mult = 1_000_000_000
                 num = num[:-1]
             elif num[-1].lower() == 'm':
-                mult = 1e6
+                mult = 1_000_000
                 num = num[:-1]
             elif num[-1].lower() == 'k':
-                mult = 1e3
+                mult = 1_000
                 num = num[:-1]
         else:
             return -1
@@ -958,6 +973,11 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     embed.add_field(name="> __Health__",
                     value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                     inline=True)
+    splits = get_splits(interaction, curr_boss)
+    if splits:
+        embed.add_field(name="> __Splits__",
+                value="\n".join(splits),
+                inline=True)
     embed.set_author(name=interaction.user.display_name,
                      icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
@@ -979,4 +999,21 @@ def call_sweeper(interaction: discord.Interaction, curr_boss):
         return discord.utils.get(interaction.guild.roles, id=sweeper_roles[boss])
     
     return -1
+
+def get_splits(interaction: discord.Interaction, curr_boss):
+    if curr_boss.guild in damage_intervals:
+        guild = curr_boss.guild
+    else:
+        guild = "other"
+    boss = curr_boss.name
+    hp = curr_boss.hp
+    splits = []
+    
+    hit_cnt = 2
+    while hp/hit_cnt >= damage_intervals[guild][boss]["low"] and len(splits) < 4:
+        if hp/hit_cnt <= damage_intervals[guild][boss]["high"]:
+            splits.append(f"{hit_cnt} x {hp/(hit_cnt*1_000_000):.1f}m")
+        hit_cnt += 1
+    
+    return splits
     
