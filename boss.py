@@ -12,6 +12,7 @@ class Boss:
     hits: list = []
     current_users_hit: list = []
     is_done: bool = False
+    hit_history: list = []
     queue: list = []
     queue_front: int = None
 
@@ -45,7 +46,6 @@ class Boss:
         self.current_users_hit = []
         self.queue = []
         is_done = True
-
         
     def set_hp(self, hp):
         self.hp = hp
@@ -62,14 +62,16 @@ class Boss:
     def overkill_damage(self, damage):
         self.hp -= damage
 
-    def undo(self, idx):
-        hit = self.hits[idx]
-        if hit.boss_level == self.level:
-            self.hp += hit.damage
-        else:
-            self.hp = hit.damage
-            self.level = hit.boss_level
-        self.hits.pop(idx)
+    def undo(self):
+        for i in range(self.hit_history[-1]):
+            hit = self.hits[-1]
+            if hit.boss_level == self.level:
+                self.hp += hit.damage
+            else:
+                self.hp = hit.damage
+                self.level = hit.boss_level
+            self.hits.pop(-1)
+        self.hit_history.pop(-1)
 
 
     # For fixing hps
@@ -87,13 +89,15 @@ class Boss:
         self.current_users_hit.clear()
 
     def admin_undo(self):
-        hit = self.hits[-1]
-        if hit.boss_level == self.level:
-            self.hp += hit.damage
-        else:
-            self.hp = hit.damage
-            self.level = hit.boss_level
-        self.hits.pop(-1)
+        for i in range(self.hit_history[-1]):
+            hit = self.hits[-1]
+            if hit.boss_level == self.level:
+                self.hp += hit.damage
+            else:
+                self.hp = hit.damage
+                self.level = hit.boss_level
+            self.hits.pop(-1)
+        self.hit_history.pop(-1)
 
 @attr.define
 class Hit:
