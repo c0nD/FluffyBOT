@@ -33,6 +33,7 @@ guilds = final_vars.guilds
 ping_roles = final_vars.ping_roles
 sweeper_roles = final_vars.sweeper_roles
 sweeper_requirements = final_vars.sweeper_requirements
+damage_intervals = final_vars.damage_intervals
 split_exempt = final_vars.split_exempt
 
 # ERRORS MADE TO BE CONSTANTS
@@ -443,12 +444,6 @@ def run_bot():
             curr_boss = bot.boss_dict[interaction.channel_id]
             error = True
             if len(curr_boss.hits) > 0:
-                hit = curr_boss.hits[-1]
-                user_id = hit.user_id
-                if hit.boss_level == curr_boss.level - 1:
-                    hit_type = "kill"
-                else:
-                    hit_type = hit.damage
                 curr_boss.admin_undo()
                 error = False
 
@@ -468,12 +463,8 @@ def run_bot():
                 else:
                     clr = 0x58C7CF
                     display_name = "TLA"
-                if hit_type == "kill":
-                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                        description=f"**`ADMIN` undid <@{user_id}>'s kill on {display_name}**")
-                else:
-                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                        description=f"**`ADMIN` undid <@{user_id}>'s {hit_type:,} damage on {display_name}**")
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**`ADMIN` undid <@{user_id}>'s last command on {display_name}**")
                 embed.add_field(name="> __New Health__",
                                 value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                                 inline=True)
@@ -545,9 +536,9 @@ def run_bot():
 
     
     @bot.tree.command(name="hit", description="Uses 1 ticket to hit the boss.")
-    @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
+    @app_commands.describe(level="Level the boss was left at.", hp="HP the boss was left at.")
     @app_commands.guild_only()
-    async def hit(interaction: discord.Interaction, damage: str):
+    async def hit(interaction: discord.Interaction, level: str, hp: str):
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
         res = bool(bot.boss_dict.get(interaction.channel_id))
@@ -558,18 +549,36 @@ def run_bot():
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             curr_tasks = bot.task_dict[interaction.channel_id]
-            damage = sanitize_int(damage)
-            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
+            level = sanitize_int(level)
+            hp = sanitize_int(hp)
+            if level > 139 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp):
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
                 await interaction.delete_original_response()
                 return
-            if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, interaction.user.id, True, False, curr_boss.level)
-                curr_boss.current_users_hit.append(interaction.user.id)
-            else:
-                curr_boss.take_damage(damage, interaction.user.id, True, True, curr_boss.level)
+            sweep = level > curr_boss.level
+            split = not interaction.user.id in curr_boss.current_users_hit
+            used_ticket = True
+            total_damage = 0
+            hit_cnt = 0
+            while level > curr_boss.level:
+                total_damage += curr_boss.hp
+                hit_cnt += 1
+                curr_boss.take_damage(curr_boss.hp, interaction.user.id, used_ticket, split, curr_boss.level)
+                curr_boss.killed()
+                split = True
+                used_ticket = False
+            if hp < curr_boss.hp:
+                damage = curr_boss.hp - hp
+                total_damage += damage
+                hit_cnt += 1
+                curr_boss.take_damage(damage, interaction.user.id, used_ticket, split, curr_boss.level)
                 curr_boss.current_users_hit.append(interaction.user.id)
             count_hits = curr_boss.current_users_hit.count(interaction.user.id)
+            curr_boss.hit_history.append(hit_cnt)
+            
+            # Calculate possible splits
+            splits = []
+            
 
             # Reminding users to split hits at a certain threshold
             if count_hits >= split_threshold and curr_boss.guild not in split_exempt:
@@ -590,19 +599,30 @@ def run_bot():
                 clr = 0x58C7CF
                 display_name = "TLA"
             embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**{interaction.user.mention} did {damage:,} damage"
-                                              f" to the {display_name}**")
+                                  description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                              f" to {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
+            splits = get_splits(interaction, curr_boss)
+            if splits:
+                embed.add_field(name="> __Splits__",
+                        value="\n".join(splits),
+                        inline=True)
             embed.set_author(name=interaction.user.display_name,
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
             await interaction.followup.send(embed=embed)
             
             ping = call_sweeper(interaction, curr_boss)
+            ping = -1 # disable sweeper pings
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
+            
+            if sweep:
+                allowed_mentions = discord.AllowedMentions(everyone=True)
+                ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+                await interaction.followup.send(f"**{ping.mention} has been swept.**", allowed_mentions=allowed_mentions)
             
             # Deleting the defer
             await interaction.delete_original_response()
@@ -613,137 +633,6 @@ def run_bot():
                 curr_tasks[user].cancel()
                 del curr_tasks[user]
             curr_tasks[user] = asyncio.create_task(wait_done(interaction))
-
-    # Hit command for when you don't want it to subtract a ticket
-    @bot.tree.command(name="resume_hit", description="Hit the boss *without* using a ticket (aka Continued hit).")
-    @app_commands.describe(damage="Enter the exact amount of damage dealt to the boss.")
-    @app_commands.guild_only()
-    async def resume_hit(interaction: discord.Interaction, damage: str):
-        await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        bot.boss_dict[interaction.channel_id].is_done = False
-        res = bool(bot.boss_dict.get(interaction.channel_id))
-        if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            await interaction.delete_original_response()
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_tasks = bot.task_dict[interaction.channel_id]
-            damage = sanitize_int(damage)
-            if damage > curr_boss.hp_list[curr_boss.level] or damage >= curr_boss.hp or damage < 0:
-                await interaction.followup.send(f"{INVALID_INT_ERR}")
-                await interaction.delete_original_response()
-                return
-            if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(damage, interaction.user.id, False, False, curr_boss.level)
-                curr_boss.current_users_hit.append(interaction.user.id)
-            else:
-                curr_boss.take_damage(damage, interaction.user.id, False, True, curr_boss.level)
-                curr_boss.current_users_hit.append(interaction.user.id)
-                
-            name = curr_boss.name
-            tz = pytz.timezone("Asia/Seoul")
-            unformatted_time = datetime.now(tz)
-            ct = unformatted_time.strftime("%H:%M:%S")
-            if name == 'dragon':
-                clr = 0xFF6060
-                display_name = "RVD"
-            elif name == 'avatar':
-                clr = 0xB900A2
-                display_name = "AOD"
-            else:
-                clr = 0x58C7CF
-                display_name = "TLA"
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**{interaction.user.mention} did {damage:,} damage"
-                                              f" to the {display_name}**")
-            embed.add_field(name="> __New Health__",
-                            value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
-                            inline=True)
-            embed.set_author(name=interaction.user.display_name,
-                             icon_url=interaction.user.display_avatar.url)
-            embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await interaction.followup.send(embed=embed)
-            
-            ping = call_sweeper(interaction, curr_boss)
-            if ping != -1:
-                await interaction.channel.send(f"{ping.mention}")
-            
-            # Deleting the defer
-            await interaction.delete_original_response()
-            
-            # Checking if the user is done
-            user = interaction.user.id
-            if user in curr_tasks:
-                curr_tasks[user].cancel()
-                del curr_tasks[user]
-            curr_tasks[user] = asyncio.create_task(wait_done(interaction))
-
-
-    @bot.tree.command(name="killed", description="Uses a ticket and kills the boss.")
-    @app_commands.guild_only()
-    async def killed(interaction: discord.Interaction):
-        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        bot.boss_dict[interaction.channel_id].is_done = False
-        res = bool(bot.boss_dict.get(interaction.channel_id))
-        if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_tasks = bot.task_dict[interaction.channel_id]
-            if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, False, curr_boss.level)
-            else:
-                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
-            curr_boss.killed()
-            allowed_mentions = discord.AllowedMentions(everyone=True)
-            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
-            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
-                                                    allowed_mentions=allowed_mentions)
-            embed = get_hp_embed(interaction, curr_boss)
-            await interaction.followup.send(embed=embed)
-        await interaction.delete_original_response()  # Deleting the defer
-            
-        # Checking if the user is done
-        user = interaction.user.id
-        if user in curr_tasks:
-            curr_tasks[user].cancel()
-            del curr_tasks[user]
-        curr_tasks[user] = asyncio.create_task(wait_done(interaction))
-
-    # Killed command for when you don't want it to subtract a ticket
-    @bot.tree.command(name="bonus_kill", description="Kill the boss *without* using a ticket (aka solo'd).")
-    @app_commands.guild_only()
-    async def bonus_kill(interaction: discord.Interaction):
-        await interaction.response.send_message("Attempting to kill...")  # Deferring so I can followup later
-        bot.boss_dict[interaction.channel_id].is_done = False
-        res = bool(bot.boss_dict.get(interaction.channel_id))
-        if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_tasks = bot.task_dict[interaction.channel_id]
-            if interaction.user.id in curr_boss.current_users_hit:
-                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, False, curr_boss.level)
-            else:
-                curr_boss.take_damage(curr_boss.hp, interaction.user.id, True, True, curr_boss.level)
-            curr_boss.killed()
-            allowed_mentions = discord.AllowedMentions(everyone=True)
-            ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
-            await interaction.followup.send(f"**{ping.mention} has been swept. New Boss:**",
-                                                    allowed_mentions=allowed_mentions)
-            embed = get_hp_embed(interaction, curr_boss)
-            await interaction.followup.send(embed=embed)
-        await interaction.delete_original_response()  # Deleting the defer
-            
-        # Checking if the user is done
-        user = interaction.user.id
-        if user in curr_tasks:
-            curr_tasks[user].cancel()
-            del curr_tasks[user]
-        curr_tasks[user] = asyncio.create_task(wait_done(interaction))
 
 
     # =========================== NON-ATTACKING COMMANDS ===========================
@@ -864,23 +753,9 @@ def run_bot():
         if str(interaction.channel.name).lower() in valid_channels:
             curr_boss = bot.boss_dict[interaction.channel_id]
             error = True
-            if len(curr_boss.hits) > 0:
-                hit = curr_boss.hits[-1]
-                # check if the last command is a kill
-                if hit.boss_level == curr_boss.level - 1 and hit.user_id == interaction.user.id:
-                    hit_type = "kill"
-                    curr_boss.undo(-1)
-                    error = False
-
-                # find the latest command that's a hit on the current level
-                idx = len(curr_boss.hits) - 1
-                while error and idx >= 0 and curr_boss.hits[idx].boss_level >= curr_boss.level:
-                    hit = curr_boss.hits[idx]
-                    if hit.boss_level == curr_boss.level and hit.user_id == interaction.user.id:
-                        hit_type = hit.damage
-                        curr_boss.undo(idx)
-                        error = False
-                    idx -= 1
+            if len(curr_boss.hits) > 0 and curr_boss.hits[-1].user_id == interaction.user.id:
+                curr_boss.undo()
+                error = False
 
             if error:
                 await interaction.followup.send(f"{INVALID_UNDO_ERR}")
@@ -898,15 +773,16 @@ def run_bot():
                 else:
                     clr = 0x58C7CF
                     display_name = "TLA"
-                if hit_type == "kill":
-                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                        description=f"**{interaction.user.mention} undid a kill on {display_name}**")
-                else:
-                    embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                        description=f"**{interaction.user.mention} undid {hit_type:,} damage on {display_name}**")
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                        description=f"**{interaction.user.mention} undid their last command on {display_name}**")
                 embed.add_field(name="> __New Health__",
                                 value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                                 inline=True)
+                splits = get_splits(interaction, curr_boss)
+                if splits:
+                    embed.add_field(name="> __Splits__",
+                            value="\n".join(splits),
+                            inline=True)
                 embed.set_author(name=interaction.user.display_name,
                                 icon_url=interaction.user.display_avatar.url)
                 embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
@@ -972,7 +848,7 @@ def run_bot():
         )
         df_hits.columns = df_hits.columns.str.split(".").str[-1]
 
-        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "id", "level", "hp",
+        df_final = pd.merge(left=df_main, right=df_hits).drop(columns=["hits", "hp_list", "hit_history", "queue_front", "id", "level", "hp",
                                                                        "current_users_hit", "is_done", "queue"])
         if crk_guild != "all":
             df_final = df_final[df_final["guild"] == crk_guild]
@@ -1059,11 +935,22 @@ def run_bot():
 
 def sanitize_int(num):
     try:
-        if num[-1].lower() == 'm':
+        mult = 1
+        if num[-1].lower() in 'bmk0123456789.':
+            if num[-1].lower() == 'b':
+                mult = 1_000_000_000
+                num = num[:-1]
+            elif num[-1].lower() == 'm':
+                mult = 1_000_000
+                num = num[:-1]
+            elif num[-1].lower() == 'k':
+                mult = 1_000
+                num = num[:-1]
+        else:
             return -1
         re.sub('\D', '', str(num))
-        num = int(num)
-        return num
+        num = float(num)
+        return int(num*mult)
     except Exception as e:
         return -1
     
@@ -1086,6 +973,11 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     embed.add_field(name="> __Health__",
                     value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                     inline=True)
+    splits = get_splits(interaction, curr_boss)
+    if splits:
+        embed.add_field(name="> __Splits__",
+                value="\n".join(splits),
+                inline=True)
     embed.set_author(name=interaction.user.display_name,
                      icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
@@ -1107,4 +999,21 @@ def call_sweeper(interaction: discord.Interaction, curr_boss):
         return discord.utils.get(interaction.guild.roles, id=sweeper_roles[boss])
     
     return -1
+
+def get_splits(interaction: discord.Interaction, curr_boss):
+    if curr_boss.guild in damage_intervals:
+        guild = curr_boss.guild
+    else:
+        guild = "other"
+    boss = curr_boss.name
+    hp = curr_boss.hp
+    splits = []
+    
+    hit_cnt = 2
+    while hp/hit_cnt >= damage_intervals[guild][boss]["low"] and len(splits) < 4:
+        if hp/hit_cnt <= damage_intervals[guild][boss]["high"]:
+            splits.append(f"{hit_cnt} x {hp/(hit_cnt*1_000_000):.1f}m")
+        hit_cnt += 1
+    
+    return splits
     
