@@ -87,6 +87,14 @@ class Boss:
         self.level -= 1
         self.hp = self.hp_list[self.level]
         self.current_users_hit.clear()
+    
+    def admin_set_level(self, level):
+        self.level = level
+        self.hp = self.hp_list[self.level]
+        self.current_users_hit.clear()
+    
+    def admin_set_hp(self, hp):
+        self.hp = hp 
 
     def admin_undo(self):
         for i in range(self.hit_history[-1]):
