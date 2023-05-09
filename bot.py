@@ -243,6 +243,7 @@ def run_bot():
             level = sanitize_int(level)
             hp = sanitize_int(hp)
             tickets_used = sanitize_int(tickets_used)
+            tickets_used_copy = tickets_used
             if level > 139 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
                 await interaction.followup.send(f"{INSERT_HIT_ERR}")
                 await interaction.delete_original_response()
@@ -280,9 +281,18 @@ def run_bot():
             else:
                 clr = 0x58C7CF
                 display_name = "TLA"
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**`ADMIN` inserted a hit for {total_damage:,} damage"
-                                              f" to {display_name}**")
+            if tickets_used_copy == 1:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**")
+            elif tickets_used_copy == 0:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**\nNo tickets used")
+            else:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**\n{tickets_used_copy} tickets, {total_damage/(tickets_used_copy*1e6):.1f}m avg")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
@@ -506,6 +516,7 @@ def run_bot():
             curr_tasks = bot.task_dict[interaction.channel_id]
             level = sanitize_int(level)
             tickets_used = sanitize_int(tickets_used)
+            tickets_used_copy = tickets_used
             hp = sanitize_int(hp)
             if level > 139 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
                 await interaction.followup.send(f"{INVALID_INT_ERR}")
@@ -550,9 +561,18 @@ def run_bot():
             else:
                 clr = 0x58C7CF
                 display_name = "TLA"
-            embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**{interaction.user.mention} did {total_damage:,} damage"
-                                              f" to {display_name}**")
+            if tickets_used_copy == 1:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**")
+            elif tickets_used_copy == 0:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**\nNo tickets used")
+            else:
+                embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
+                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                                f" to {display_name}**\n{tickets_used_copy} tickets, {total_damage/(tickets_used_copy*1e6):.1f}m avg")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
