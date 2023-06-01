@@ -1,4 +1,3 @@
-import attrs
 import asyncio
 import boss
 import cattrs
@@ -7,21 +6,15 @@ import final_vars
 import json
 import pytz
 import re
-import view
-import csv, io
 import sys, traceback
 import pandas as pd
 import linecache
 import jsonpickle
-from ast import literal_eval
-from collections import namedtuple
 from apscheduler.schedulers.background import BackgroundScheduler
-from types import SimpleNamespace
 from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed, app_commands
 from discord.ext import commands
 from discord.ext.commands import Bot
-from discord.ui import Button, View
 
 # FINALS
 guild_id = final_vars.guild_id
@@ -86,16 +79,14 @@ def run_bot():
             traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
     async def wait_done(interaction: discord.Interaction):
-        guild = interaction.guild
         uid = interaction.user.id
-        username = guild.get_member(uid).display_name
         msg = await interaction.channel.send("**Are you done with all of your attack(s)?**")
         try:
             await msg.add_reaction("✅")
             await asyncio.sleep(20 * 60)  # wait for 20 minutes
             if not bot.boss_dict[msg.channel.id].is_done:
                 bot.boss_dict[msg.channel.id].is_done = True
-                await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {username}.**")
+                await msg.channel.send(f"**20 minutes has passed! Defaulting to done for {interaction.user.mention}.**")
             await msg.delete()
 
             # Checking the queue
@@ -123,10 +114,9 @@ def run_bot():
     
     async def wait_queue(msg: discord.Message, uid: int):
         guild = msg.guild
-        username = guild.get_member(uid).display_name
         try:
             await asyncio.sleep(20 * 60)  # wait for 20 minutes
-            await msg.channel.send(f"**20 minutes has passed! {username}'s turn in the queue has been skipped.**")
+            await msg.channel.send(f"**20 minutes has passed! {guild.get_member(uid).mention}'s turn in the queue has been skipped.**")
 
             # Checking the queue
             if len(bot.boss_dict[msg.channel.id].queue) != 0:
@@ -147,7 +137,7 @@ def run_bot():
 
         except asyncio.CancelledError:
             pass
-
+            
     # STAFF COMMANDS
     @bot.tree.command(name="admin_hit", description="FIX THE LEVEL AND HP -- WILL NOT REGISTER AS A HIT.")
     @app_commands.describe(level="Current level of the boss.")
@@ -157,16 +147,25 @@ def run_bot():
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.channel.send(f"{BOSS_SETUP_ERR}")
-            await interaction.delete_original_response()
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
+            return await interaction.edit_original_response(content=f"{BOSS_SETUP_ERR}")
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
+            total_damage = 0
+            Healed = False
+            if curr_boss.level < int(level): # Took damage
+                damages = curr_boss.hp_list[curr_boss.level:int(level)]
+                damages.append(curr_boss.hp-int(hp))
+            else: # Healed
+                damages = curr_boss.hp_list[int(level):curr_boss.level]
+                damages.append(curr_boss.hp-int(hp))
+                Healed = True
+            for damage in damages:
+                total_damage += damage
             level = sanitize_int(level)
             hp = sanitize_int(hp)
-            if level > 139 or level < 1 or hp <= 0:
-                await interaction.edit_original_response(content=INVALID_INT_ERR)
-                return
+            if level > len(curr_boss.hp_list) or level < 1 or hp <= 0:
+                return await interaction.edit_original_response(content=f"{INVALID_INT_ERR}")
             if level != curr_boss.level:
                 curr_boss.admin_set_level(level)
             if hp > curr_boss.hp_list[level]:
@@ -188,14 +187,14 @@ def run_bot():
                 clr = 0x58C7CF
                 display_name = "TLA"
             
-            if damage < 0 and damage != -1:
+            if Healed == True:
                 embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                  description=f"**`ADMIN` healed {(-1*damage):,} HP"
-                                              f" for the {display_name}**")
+                                  description=f"**`ADMIN` healed {(total_damage):,} HP"
+                                              f" for {display_name}**")
             else:
                 embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                    description=f"**`ADMIN` did {damage:,} damage"
-                                                f" to the {display_name}**")
+                                    description=f"**`ADMIN` did {total_damage:,} damage"
+                                                f" to {display_name}**")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
@@ -207,7 +206,7 @@ def run_bot():
             embed.set_author(name=interaction.user.display_name,
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await interaction.edit_original_response(embed=embed)
+            await interaction.edit_original_response(content="",embed=embed)
             
             ping = call_sweeper(interaction, curr_boss)
             ping = -1 # disable sweeper pings
@@ -231,24 +230,19 @@ def run_bot():
             return await interaction.response.send_message("**Member is not in server! Please input the correct user id.**")
 
         await interaction.response.send_message("Attempting to hit...")  # Deferring so I can followup later
-        bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
-        res = bool(bot.boss_dict.get(interaction.channel_id))
+        res = bool(bot.boss_dict.get(interaction.channel_id)) # Needs to be done BEFORE resetting interaction else it's useless
         if not res:
-            await interaction.followup.send(f"{BOSS_SETUP_ERR}")
-            await interaction.delete_original_response()
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
+            return await interaction.edit_original_response(content=f"{BOSS_SETUP_ERR}")
+        bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
-            curr_tasks = bot.task_dict[interaction.channel_id]
             level = sanitize_int(level)
             hp = sanitize_int(hp)
             tickets_used = sanitize_int(tickets_used)
             tickets_used_copy = tickets_used
-            if level > 139 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
-                await interaction.followup.send(f"{INSERT_HIT_ERR}")
-                await interaction.delete_original_response()
-                return
-            sweep = level > curr_boss.level
+            if level > 199 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
+                return await interaction.edit_original_response(content=f"{INVALID_BOSS_ERR}")
             split = not pass_user_id in curr_boss.current_users_hit
             total_damage = 0
             hit_cnt = 0
@@ -265,7 +259,6 @@ def run_bot():
                 hit_cnt += 1
                 curr_boss.take_damage(damage, pass_user_id, tickets_used, split, curr_boss.level)
                 curr_boss.current_users_hit.append(pass_user_id)
-            count_hits = curr_boss.current_users_hit.count(pass_user_id)
             curr_boss.hit_history.append(hit_cnt)
 
             name = curr_boss.name
@@ -301,17 +294,18 @@ def run_bot():
                 embed.add_field(name="> __Splits__",
                         value="\n".join(splits),
                         inline=True)
-            embed.set_author(name=interaction.user.display_name,
-                             icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name="> __Hit Inserted by__", 
+                            value=f"**{interaction.user.name}#{interaction.user.discriminator}**",
+                            inline=False)
+            embed.set_author(name=user.display_name,
+                             icon_url=user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await interaction.followup.send(embed=embed)
+            await interaction.edit_original_response(content="",embed=embed)
             
             ping = call_sweeper(interaction, curr_boss)
             ping = -1 # disable sweeper pings
             if ping != -1:
                 await interaction.channel.send(f"{ping.mention}")
-            
-            await interaction.delete_original_response()
 
     @bot.tree.command(name="create_boss", description="Add a boss to this channel.")
     @app_commands.describe(guild="Enter the guild this boss belongs to (ie. Onion, Spring, etc).")
@@ -319,16 +313,15 @@ def run_bot():
     async def create_boss(interaction: discord.Interaction, guild: str):
         guild = guild.lower()
         if guild not in guilds:
-            await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
-            return
+            return await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
         elif guilds[guild] is None:
             guilds[guild] = boss.Guild()
 
-        _name = str(interaction.channel.name).lower()
-        if  _name in valid_channels:
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             res = bool(bot.boss_dict.get(interaction.channel_id))
             if not res:
-                new_boss = boss.Boss(interaction.channel.name, 1, guild)
+                new_boss = boss.Boss(check_if_valid(str(interaction.channel.name).lower()), 1, guild)
                 bot.boss_dict[interaction.channel_id] = new_boss
                 bot.task_dict[interaction.channel_id] = {}
                 await interaction.response.send_message(f"**Created `{str(interaction.channel.name).upper()}` "
@@ -344,11 +337,13 @@ def run_bot():
                                                       " Use carefully.")
     @app_commands.guild_only()
     async def delete_boss(interaction: discord.Interaction):
-        if str(interaction.channel.name).lower() in valid_channels:
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             try:
                 curr_boss = bot.boss_dict[interaction.channel_id]
                 await interaction.response.send_message(f"**Deleting `lv.{curr_boss.level}"
-                                                     f" {str(interaction.channel.name).upper()}`**")
+                                                     f" {str(interaction.channel.name).upper()}`"
+                                                     f"Boss for `{bot.boss_dict[interaction.channel_id].guild.capitalize()}`.**")
                 del bot.boss_dict[interaction.channel_id]
             except Exception as e:
                 await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
@@ -360,24 +355,23 @@ def run_bot():
     @app_commands.guild_only()
     async def insert_boss(interaction: discord.Interaction, guild: str,
                           level: str, health: str):
-        if str(interaction.channel.name).lower() in valid_channels:
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             level = sanitize_int(level)
             health = sanitize_int(health)
             guild = guild.lower()
             if guild not in guilds:
-                await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
-                return
+                return await interaction.response.send_message(f"{INVALID_GUILD_ERR}")
             elif guilds[guild] is None:
                 guilds[guild] = boss.Guild()
 
-            new_boss = boss.Boss(interaction.channel.name, level, guild)
+            new_boss = boss.Boss(check_if_valid(str(interaction.channel.name).lower()), level, guild)
             # If you accidentally set the hp too high
             if health > new_boss.hp_list[new_boss.level]:
                 res = bool(bot.boss_dict.get(interaction.channel_id))
                 if res:
                     del bot.boss_dict[interaction.channel_id]
-                    await interaction.response.send_message(f"{INVALID_HP_ERR}")
-                    return
+                    return await interaction.response.send_message(f"{INVALID_HP_ERR}")
             else:
                 new_boss.set_hp(health)
 
@@ -400,9 +394,9 @@ def run_bot():
         await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
+            return await interaction.followup.send(f"{INVALID_BOSS_ERR}")
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
             error = True
             if len(curr_boss.hits) > 0:
@@ -434,9 +428,7 @@ def run_bot():
                 embed.set_author(name=interaction.user.display_name,
                                 icon_url=interaction.user.display_avatar.url)
                 embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-                await interaction.followup.send(embed=embed)
-
-        await interaction.delete_original_response()
+                await interaction.edit_original_response(content="",embed=embed)
         
     @bot.tree.command(name="admin_remove_queue", description="Removes the person currently in the queue")
     @app_commands.guild_only()
@@ -452,15 +444,15 @@ def run_bot():
                 await interaction.channel.send("The last person was removed from the queue. Anyone can hit now.")
         else:
             await interaction.followup.send("Queue is empty. Cannot remove anyone.")
-        await interaction.delete_original_response()
+        return await interaction.delete_original_response()
 
     # =========================== USER COMMANDS ===========================
     
     # Setup event for done command
     @bot.event
     async def on_reaction_add(reaction, user):
-        if str(reaction.message.channel.name).lower() in valid_channels:
-            curr_boss = bot.boss_dict[reaction.message.channel.id]
+        channels = check_if_valid(str(reaction.message.channel.name).lower())
+        if channels != None:
             curr_tasks = bot.task_dict[reaction.message.channel.id]
             if user == bot.user:
                 return
@@ -471,10 +463,9 @@ def run_bot():
                 and reaction.message.content == "**Are you done with all of your attack(s)?**"):
                 
                 guild = reaction.message.guild
-                username = guild.get_member(user.id)
                 curr_tasks[user.id].cancel()
                 del curr_tasks[user.id]
-                await reaction.message.channel.send(f"**{username.display_name} is done.**")
+                await reaction.message.channel.send(f"**{guild.get_member(user.id).mention} is done.**")
                 bot.boss_dict[reaction.message.channel.id].is_done = True
         
                 # Checking the queue
@@ -508,20 +499,17 @@ def run_bot():
         bot.boss_dict[interaction.channel_id].is_done = False  # resetting interaction with "done"
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            await interaction.delete_original_response()
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
+            return await interaction.edit_original_response(content=f"{INVALID_BOSS_ERR}")
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
             curr_tasks = bot.task_dict[interaction.channel_id]
             level = sanitize_int(level)
             tickets_used = sanitize_int(tickets_used)
             tickets_used_copy = tickets_used
             hp = sanitize_int(hp)
-            if level > 139 or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
-                await interaction.followup.send(f"{INVALID_INT_ERR}")
-                await interaction.delete_original_response()
-                return
+            if level > len(curr_boss.hp_list) or level < curr_boss.level or (level == curr_boss.level and hp > curr_boss.hp) or hp <= 0 or tickets_used < 0 or tickets_used > 9:
+                return await interaction.edit_original_response(content=f"{INVALID_INT_ERR}")
             sweep = level > curr_boss.level
             split = not interaction.user.id in curr_boss.current_users_hit
             total_damage = 0
@@ -584,7 +572,7 @@ def run_bot():
             embed.set_author(name=interaction.user.display_name,
                              icon_url=interaction.user.display_avatar.url)
             embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-            await interaction.followup.send(embed=embed)
+            await interaction.edit_original_response(content="",embed=embed)
             
             ping = call_sweeper(interaction, curr_boss)
             ping = -1 # disable sweeper pings
@@ -593,11 +581,8 @@ def run_bot():
             
             if sweep:
                 allowed_mentions = discord.AllowedMentions(everyone=True)
-                ping = discord.utils.get(interaction.guild.roles, id=ping_roles[interaction.channel.name])
+                ping = discord.utils.get(interaction.guild.roles, id=ping_roles[check_if_valid(interaction.channel.name)])
                 await interaction.followup.send(f"**{ping.mention} has been swept.**", allowed_mentions=allowed_mentions)
-            
-            # Deleting the defer
-            await interaction.delete_original_response()
             
             # Checking if the user is done
             user = interaction.user.id
@@ -618,28 +603,23 @@ def run_bot():
         await interaction.response.send_message("Attempting to queue...")  # deferring interaction
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            await interaction.delete_original_response()
-            return
+            return await interaction.edit_original_response(content=f"{INVALID_BOSS_ERR}")
         bot.boss_dict[interaction.channel_id].queue
         param = param.lower()
         name = interaction.user.display_name
         if param == "join":
             # Checking if the queue is full
             if len(bot.boss_dict[interaction.channel_id].queue) > max_queue_length:
-                await interaction.followup.send("**The queue is current full. Try again later.**")
-                return
+                return await interaction.edit_original_response(content="**The queue is current full. Try again later.**")
             if interaction.user in bot.boss_dict[interaction.channel_id].queue:
-                await interaction.followup.send("You're already in the queue.")
+                return await interaction.edit_original_response(content="You're already in the queue.")
             bot.boss_dict[interaction.channel_id].queue.append(interaction.user)
-            await interaction.followup.send(f"**{name}** has joined the queue. "
+            await interaction.edit_original_response(content=f"**{name}** has joined the queue. "
                                             f"Position: **{bot.boss_dict[interaction.channel_id].queue.index(interaction.user)+1}/{max_queue_length+1}**")
                  
         elif param == "leave":
             if len(bot.boss_dict[interaction.channel_id].queue) == 0:
-                await interaction.followup.send("**Cannot leave an empty queue.**")
-                await interaction.delete_original_response()
-                return
+                return await interaction.edit_original_response(content="**Cannot leave an empty queue.**")
             bot.boss_dict[interaction.channel_id].queue.remove(interaction.user)
             if len(bot.boss_dict[interaction.channel_id].queue) != 0:
                 next_queued = bot.boss_dict[interaction.channel_id].queue[0]
@@ -652,26 +632,19 @@ def run_bot():
             
         elif param == "position" or param == "pos":
             try:
-                await interaction.followup.send(f"**{name}'s** position: "
+                return await interaction.edit_original_response(content=f"**{name}'s** position: "
                                                 f"**{bot.boss_dict[interaction.channel_id].queue.index(interaction.user)+1}/{max_queue_length+1}**")
-                await interaction.delete_original_response()
-                return
             except ValueError:
-                await interaction.followup.send(f"**{name}** is not in the queue. Cannot check your position.")
-                await interaction.delete_original_response()
-                return
+                return await interaction.edit_original_response(content=f"**{name}** is not in the queue. Cannot check your position.")
                 
         elif param == "list":
             if len(bot.boss_dict[interaction.channel_id].queue) != 0:
                 queue_str = "__ Current Queue __\n"
                 for pos in range(len(bot.boss_dict[interaction.channel_id].queue)):
                     queue_str = queue_str + f"**({pos+1}/{max_queue_length+1}) - {bot.boss_dict[interaction.channel_id].queue[pos].display_name}**\n"
-                await interaction.followup.send(queue_str)
-                await interaction.delete_original_response()
+                await interaction.edit_original_response(content=queue_str)
             else:
-                await interaction.followup.send("The queue is currently **empty**")
-                await interaction.delete_original_response()
-                return
+                return await interaction.edit_original_response(content="The queue is currently **empty**")
         elif param == "hold":
             uid = interaction.user.id
             if bot.boss_dict[interaction.channel_id].queue_front == uid:
@@ -707,12 +680,7 @@ def run_bot():
                 
         
         else:
-            await interaction.followup.send(f"{INVALID_PARAM_ERR}")   
-        
-        try:
-            await interaction.delete_original_response()
-        except:
-            pass
+            return await interaction.edit_original_response(content=f"{INVALID_PARAM_ERR}")  
     
     @bot.tree.command(name="undo", description="Undoes the most recent command made by the user.")
     @app_commands.guild_only()
@@ -720,9 +688,9 @@ def run_bot():
         await interaction.response.send_message("Attempting to undo...")  # Deferring so I can followup later
         res = bool(bot.boss_dict.get(interaction.channel_id))
         if not res:
-            await interaction.followup.send(f"{INVALID_BOSS_ERR}")
-            return
-        if str(interaction.channel.name).lower() in valid_channels:
+            return await interaction.interaction.edit_original_response(f"{INVALID_BOSS_ERR}")
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
             error = True
             if len(curr_boss.hits) > 0 and curr_boss.hits[-1].user_id == interaction.user.id:
@@ -730,7 +698,7 @@ def run_bot():
                 error = False
 
             if error:
-                await interaction.followup.send(f"{INVALID_UNDO_ERR}")
+                return await interaction.edit_original_response(content=f"{INVALID_UNDO_ERR}")
             else:
                 name = curr_boss.name
                 tz = pytz.timezone("Asia/Seoul")
@@ -758,9 +726,7 @@ def run_bot():
                 embed.set_author(name=interaction.user.display_name,
                                 icon_url=interaction.user.display_avatar.url)
                 embed.set_footer(text=f"•CRK/KR TIME: {ct}•")
-                await interaction.followup.send(embed=embed)
-
-        await interaction.delete_original_response()
+                return await interaction.edit_original_response(embed=embed)
 
     @bot.tree.command(name="hp", description="Check the HP of the boss.")
     @app_commands.guild_only()
@@ -769,7 +735,8 @@ def run_bot():
         if not res:
             await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
             return
-        if str(interaction.channel.name).lower() in valid_channels:
+        channels = check_if_valid(str(interaction.channel.name).lower())
+        if channels != None:
             curr_boss = bot.boss_dict[interaction.channel_id]
             embed = get_hp_embed(interaction, curr_boss)
             await interaction.response.send_message(embed=embed)
@@ -891,7 +858,6 @@ def run_bot():
         with open("data.json") as outfile:
             json_string = outfile.read()
         bot.boss_dict = jsonpickle.decode(json_string)
-        print(bot.boss_dict)
         await interaction.followup.send("Data loaded successfully.")
         
         
@@ -980,7 +946,6 @@ def get_splits(interaction: discord.Interaction, curr_boss):
     boss = curr_boss.name
     hp = curr_boss.hp
     splits = []
-    
     hit_cnt = 2
     while hp/hit_cnt >= damage_intervals[guild][boss]["low"] and len(splits) < 4:
         if hp/hit_cnt <= damage_intervals[guild][boss]["high"]:
@@ -989,3 +954,19 @@ def get_splits(interaction: discord.Interaction, curr_boss):
     
     return splits
     
+def check_if_valid(channel_name: str):
+        channel_name = channel_name[-5:] # 🌻🐲・dragon -> ragon
+        channels = []
+        for item in valid_channels:
+            channels.append(item[-5:])
+        if channel_name not in channels:
+            return
+        else:
+            if channel_name == "ragon":
+                return "dragon"
+            elif channel_name == "vatar":
+                return "avatar"
+            elif channel_name == "abyss":
+                return "living_abyss"
+            else:
+                return None
