@@ -2,7 +2,7 @@ import linecache
 
 guild_id = int(linecache.getline('guild_id.txt', 1))
 admin_roles = []
-valid_channels = ['avatar', 'living_abyss', 'dragon']
+valid_channels = ["dragon","avatar","abyss"]
 split_threshold = 3
 max_queue_length = 2
 guilds = {
@@ -66,7 +66,7 @@ sweeper_requirements = {
 }
 
 damage_intervals = {
-    "onion": {
+    "testing": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
         "living_abyss": {"low": 200_000_000, "high": 350_000_000},
         "dragon": {"low": 200_000_000, "high": 350_000_000}
