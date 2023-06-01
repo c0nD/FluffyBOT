@@ -938,7 +938,7 @@ def call_sweeper(interaction: discord.Interaction, curr_boss):
     
     return -1
 
-def get_splits(interaction: discord.Interaction, curr_boss):
+def get_splits(curr_boss):
     if curr_boss.guild in damage_intervals:
         guild = curr_boss.guild
     else:
