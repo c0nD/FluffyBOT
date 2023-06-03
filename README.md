@@ -20,7 +20,7 @@ Install Dependencies through `pip` via command line
 - Integrated with descriptive slash commands
 ## Documentation 📄
 Click here to read the 
-[Documentation](https://onioncult.com/documentation/standalone.html) on how to use the bot commands and read their usages.
+[Documentation](https://fluffybot.xyz/) on how to use the bot commands and read their usages.
 [Visual Infographic](https://imgur.com/a/3ohAlDm) for a visual demonstration of the command's usecases.
 
 
