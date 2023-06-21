@@ -198,7 +198,7 @@ def run_bot():
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            splits = get_splits(interaction, curr_boss)
+            splits = get_splits(curr_boss)
             if splits:
                 embed.add_field(name="> __Splits__",
                         value="\n".join(splits),
@@ -276,20 +276,20 @@ def run_bot():
                 display_name = "TLA"
             if tickets_used_copy == 1:
                 embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                    description=f"**{_user.mention} did {total_damage:,} damage"
                                                 f" to {display_name}**")
             elif tickets_used_copy == 0:
                 embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                    description=f"**{_user.mention} did {total_damage:,} damage"
                                                 f" to {display_name}**\nNo tickets used")
             else:
                 embed = discord.Embed(color=clr, title=f"lv.{curr_boss.level} {display_name}",
-                                    description=f"**{interaction.user.mention} did {total_damage:,} damage"
+                                    description=f"**{_user.mention} did {total_damage:,} damage"
                                                 f" to {display_name}**\n{tickets_used_copy} tickets, {total_damage/(tickets_used_copy*1e6):.1f}m avg")
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            splits = get_splits(interaction, curr_boss)
+            splits = get_splits(curr_boss)
             if splits:
                 embed.add_field(name="> __Splits__",
                         value="\n".join(splits),
@@ -564,7 +564,7 @@ def run_bot():
             embed.add_field(name="> __New Health__",
                             value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                             inline=True)
-            splits = get_splits(interaction, curr_boss)
+            splits = get_splits(curr_boss)
             if splits:
                 embed.add_field(name="> __Splits__",
                         value="\n".join(splits),
@@ -718,7 +718,7 @@ def run_bot():
                 embed.add_field(name="> __New Health__",
                                 value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                                 inline=True)
-                splits = get_splits(interaction, curr_boss)
+                splits = get_splits(curr_boss)
                 if splits:
                     embed.add_field(name="> __Splits__",
                             value="\n".join(splits),
@@ -911,7 +911,7 @@ def get_hp_embed(interaction: discord.Interaction, curr_boss):
     embed.add_field(name="> __Health__",
                     value=f"**HP: *{curr_boss.hp:,}/{curr_boss.hp_list[curr_boss.level]:,}***",
                     inline=True)
-    splits = get_splits(interaction, curr_boss)
+    splits = get_splits(curr_boss)
     if splits:
         embed.add_field(name="> __Splits__",
                 value="\n".join(splits),
@@ -947,7 +947,7 @@ def get_splits(curr_boss):
     hp = curr_boss.hp
     splits = []
     hit_cnt = 2
-    while hp/hit_cnt >= damage_intervals[guild][boss]["low"] and len(splits) < 4:
+    while hp/hit_cnt >= damage_intervals[guild][boss]["low"] and len(splits) < 5:
         if hp/hit_cnt <= damage_intervals[guild][boss]["high"]:
             splits.append(f"{hit_cnt} x {hp/(hit_cnt*1_000_000):.1f}m")
         hit_cnt += 1

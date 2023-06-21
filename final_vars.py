@@ -83,8 +83,8 @@ damage_intervals = {
     },
     "burnt": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 160_000_000, "high": 230_000_000},
-        "dragon": {"low": 170_000_000, "high": 240_000_000}
+        "living_abyss": {"low": 200_000_000, "high": 300_000_000},
+        "dragon": {"low": 200_000_000, "high": 360_000_000}
     },
     "royal": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
