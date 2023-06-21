@@ -150,20 +150,20 @@ def run_bot():
             return await interaction.edit_original_response(content=f"{BOSS_SETUP_ERR}")
         channels = check_if_valid(str(interaction.channel.name).lower())
         if channels != None:
+            level = sanitize_int(level)
+            hp = sanitize_int(hp)
             curr_boss = bot.boss_dict[interaction.channel_id]
             total_damage = 0
             Healed = False
             if curr_boss.level < int(level): # Took damage
                 damages = curr_boss.hp_list[curr_boss.level:int(level)]
-                damages.append(curr_boss.hp-int(hp))
+                damages.append(curr_boss.hp-hp)
             else: # Healed
                 damages = curr_boss.hp_list[int(level):curr_boss.level]
-                damages.append(curr_boss.hp-int(hp))
+                damages.append(curr_boss.hp-hp)
                 Healed = True
             for damage in damages:
                 total_damage += damage
-            level = sanitize_int(level)
-            hp = sanitize_int(hp)
             if level > len(curr_boss.hp_list) or level < 1 or hp <= 0:
                 return await interaction.edit_original_response(content=f"{INVALID_INT_ERR}")
             if level != curr_boss.level:
