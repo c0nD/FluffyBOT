@@ -1,7 +1,7 @@
 
 # Cookie Run Kingdom: Guild Battle BOT
 
-<a href="https://ibb.co/QrnbJht"><img src="https://i.ibb.co/QrnbJht/fluffy.png" alt="fluffy" border="0"></a>
+<a href="https://ibb.co/QrnbJht"><img src="https://i.ibb.co/QrnbJht/fluffy.png" alt="fluffy" border="0" width="650" height="550"></a>
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 ## Installation
