@@ -10,6 +10,7 @@ import sys, traceback
 import pandas as pd
 import linecache
 import jsonpickle
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from discord import Intents, MemberCacheFlags, Embed, app_commands
@@ -26,8 +27,9 @@ guilds = final_vars.guilds
 ping_roles = final_vars.ping_roles
 sweeper_roles = final_vars.sweeper_roles
 sweeper_requirements = final_vars.sweeper_requirements
-damage_intervals = final_vars.damage_intervals
 split_exempt = final_vars.split_exempt
+f = open('damage_intervals.json')
+damage_intervals = json.load(f)
 
 # ERRORS MADE TO BE CONSTANTS
 INVALID_INT_ERR = final_vars.INVALID_INT_ERR
@@ -387,6 +389,27 @@ def run_bot():
                 await interaction.response.send_message(f"{INVALID_BOSS_ERR}")
         else:
             await interaction.response.send_message(f"{INVALID_CHANNEL_ERR}")
+
+    @bot.tree.command(name="split_interval", description="Set the lower and upper limit for splits.")
+    @app_commands.describe(low="Lowest split that will be displayed.", high="Highest split that will be displayed.")
+    @app_commands.guild_only()
+    async def split_range(interaction: discord.Interaction, low: str, high: str):
+        res = bool(bot.boss_dict.get(interaction.channel_id))
+        if not res:
+            return await interaction.edit_original_response(content=f"{BOSS_SETUP_ERR}")
+        curr_boss = bot.boss_dict[interaction.channel_id]
+        guild = curr_boss.guild
+        name = curr_boss.name
+        low = sanitize_int(low)
+        high = sanitize_int(high)
+        if low < -1 or high < -1:
+            return await interaction.response.send_message(content=f"{INVALID_INT_ERR}")
+        damage_intervals[guild][name]["low"] = low
+        damage_intervals[guild][name]["high"] = high
+        json_object = json.dumps(damage_intervals, indent=4)
+        with open("damage_intervals.json", "w") as outfile:
+            outfile.write(json_object)
+        return await interaction.response.send_message(content=f"Split range for `{guild.capitalize()}` successfully edited!")
 
     @bot.tree.command(name="admin_undo", description="UNDOES THE MOST RECENT COMMAND TO FIX THE LEVEL/HP")
     @app_commands.guild_only()

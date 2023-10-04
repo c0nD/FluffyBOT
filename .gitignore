@@ -2,3 +2,5 @@
 *.csv
 *.json
 __pycache__
+final_vars_backup.py
+final_vars_backup2.py
