@@ -73,8 +73,8 @@ damage_intervals = {
     },
     "fall": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 190_000_000, "high": 300_000_000},
-        "dragon": {"low": 150_000_000, "high": 290_000_000}
+        "living_abyss": {"low": 190_000_000, "high": 310_000_000},
+        "dragon": {"low": 150_000_000, "high": 450_000_000}
     },
     "spring": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
@@ -88,8 +88,8 @@ damage_intervals = {
     },
     "royal": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 100_000_000, "high": 300_000_000},
-        "dragon": {"low": 120_000_000, "high": 280_000_000}
+        "living_abyss": {"low": 190_000_000, "high": 380_000_000},
+        "dragon": {"low": 190_000_000, "high": 480_000_000}
     },
     "other": {
         "avatar": {"low": 100_000_000, "high": 150_000_000},
