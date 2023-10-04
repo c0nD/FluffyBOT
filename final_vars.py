@@ -26,15 +26,15 @@ guilds = {
 }
 
 ping_roles = {
-    "avatar": 1047787785895038986,
-    "living_abyss": 1047787857357590538,
-    "dragon": 1042512104059568138
+    "avatar": 1067512238497349753,
+    "living_abyss": 1067512238497349753,
+    "dragon": 1067512238497349753
 }
 
 sweeper_roles = {
-    "avatar": 1061881832280424529,
-    "living_abyss": 1061881839419150376,
-    "dragon": 1061881749098999808
+    "avatar": 1067512238497349753,
+    "living_abyss": 1067512238497349753,
+    "dragon": 1067512238497349753
 }
 
 sweeper_requirements = {
@@ -62,39 +62,6 @@ sweeper_requirements = {
         "avatar": 5_000_000,
         "living_abyss": 5_000_000,
         "dragon": 5_000_000
-    }
-}
-
-damage_intervals = {
-    "testing": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 200_000_000, "high": 350_000_000},
-        "dragon": {"low": 200_000_000, "high": 350_000_000}
-    },
-    "fall": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 190_000_000, "high": 300_000_000},
-        "dragon": {"low": 150_000_000, "high": 290_000_000}
-    },
-    "spring": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 151_000_000, "high": 262_000_000},
-        "dragon": {"low": 140_000_000, "high": 250_000_000}
-    },
-    "burnt": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 200_000_000, "high": 300_000_000},
-        "dragon": {"low": 200_000_000, "high": 360_000_000}
-    },
-    "royal": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 100_000_000, "high": 300_000_000},
-        "dragon": {"low": 120_000_000, "high": 280_000_000}
-    },
-    "other": {
-        "avatar": {"low": 100_000_000, "high": 150_000_000},
-        "living_abyss": {"low": 200_000_000, "high": 350_000_000},
-        "dragon": {"low": 200_000_000, "high": 350_000_000}
     }
 }
 
