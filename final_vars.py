@@ -26,15 +26,15 @@ guilds = {
 }
 
 ping_roles = {
-    "avatar": 1067512238497349753,
-    "living_abyss": 1067512238497349753,
-    "dragon": 1067512238497349753
+    "avatar": 1047787785895038986,
+    "living_abyss": 1047787857357590538,
+    "dragon": 1042512104059568138
 }
 
 sweeper_roles = {
-    "avatar": 1067512238497349753,
-    "living_abyss": 1067512238497349753,
-    "dragon": 1067512238497349753
+    "avatar": 1061881832280424529,
+    "living_abyss": 1061881839419150376,
+    "dragon": 1061881749098999808
 }
 
 sweeper_requirements = {
