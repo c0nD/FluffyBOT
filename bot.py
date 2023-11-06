@@ -402,7 +402,7 @@ def run_bot():
         name = curr_boss.name
         low = sanitize_int(low)
         high = sanitize_int(high)
-        if low < -1 or high < -1:
+        if low <= 0 or high <= 0 or low > high:
             return await interaction.response.send_message(content=f"{INVALID_INT_ERR}")
         damage_intervals[guild][name]["low"] = low
         damage_intervals[guild][name]["high"] = high
